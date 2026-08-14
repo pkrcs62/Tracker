@@ -1,0 +1,3230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#1B2A3C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Loan Tracker">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Loan Tracker</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,800&family=Sora:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+/* =========================================================
+   DESIGN TOKENS
+   Ledger-navy / paper-cream / stamp-red / sage / brass-gold
+========================================================= */
+:root{
+  --navy:#1B2A3C;
+  --navy-deep:#121E2C;
+  --navy-soft:#2A3E56;
+  --paper:#F6F1E7;
+  --paper-dim:#EDE6D6;
+  --paper-card:#FFFDF8;
+  --ink:#241F17;
+  --ink-soft:#5C5648;
+  --ink-faint:#8B8474;
+  --stamp-red:#A64B3C;
+  --stamp-red-bg:#F5E2DD;
+  --sage:#5F7A54;
+  --sage-bg:#E4EBDD;
+  --gold:#1F8A70;
+  --gold-bg:#DCEEE8;
+  --line:#DCD3BE;
+  --line-soft:#E8E1D0;
+  --shadow-card:0 1px 3px rgba(27,42,60,.08), 0 1px 2px rgba(27,42,60,.06);
+  --shadow-float:0 8px 24px rgba(27,42,60,.18);
+  --radius:14px;
+  --radius-sm:9px;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'Sora',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  font-size:15px;
+  line-height:1.5;
+  overscroll-behavior-y:contain;
+  min-height:100vh;
+  min-height:100dvh;
+  padding-bottom:calc(70px + var(--safe-bottom));
+}
+h1,h2,h3,.serif{font-family:'Fraunces',Georgia,serif;font-weight:700;letter-spacing:-.01em;}
+.mono{font-family:'Space Mono','SF Mono',SFMono-Regular,Consolas,'Liberation Mono',Menlo,monospace;letter-spacing:.2px;}
+a{color:inherit;}
+button{font-family:inherit;}
+input,select,textarea{font-family:inherit;}
+
+/* ---------- Top App Bar — glassy, bright, glowing ---------- */
+@keyframes brandGlow{
+  0%,100%{ text-shadow:0 0 6px rgba(31,138,112,.4), 0 0 14px rgba(31,138,112,.2); }
+  50%{ text-shadow:0 0 10px rgba(31,138,112,.65), 0 0 20px rgba(31,138,112,.35); }
+}
+.topbar{
+  position:sticky;top:0;z-index:40;
+  background:
+    linear-gradient(120deg, rgba(255,255,255,.72) 0%, rgba(222,242,236,.58) 45%, rgba(255,255,255,.68) 100%);
+  backdrop-filter:blur(18px) saturate(160%);
+  -webkit-backdrop-filter:blur(18px) saturate(160%);
+  border-bottom:1px solid rgba(31,138,112,.3);
+  color:var(--ink);
+  padding:calc(14px + var(--safe-top)) 18px 14px;
+  display:flex;align-items:center;justify-content:space-between;
+  box-shadow:0 4px 24px rgba(27,42,60,.10), 0 1px 0 rgba(255,255,255,.6) inset;
+}
+.topbar .brand{display:flex;align-items:center;gap:11px;}
+.topbar .brand-mark{
+  width:38px;height:38px;border-radius:11px;
+  box-shadow:0 2px 10px rgba(31,138,112,.4), 0 0 0 1px rgba(255,255,255,.5) inset;
+  flex-shrink:0;object-fit:cover;display:block;
+}
+.topbar h1{
+  font-family:'Fraunces',Georgia,serif;
+  font-size:17.5px;margin:0;font-weight:700;letter-spacing:.1px;
+  color:#0f5c4a;
+  animation:brandGlow 3.2s ease-in-out infinite;
+}
+.topbar .sub{font-size:10.5px;color:var(--ink-soft);font-weight:500;margin-top:1px;letter-spacing:.15px;}
+.topbar-actions{display:flex;align-items:center;gap:7px;}
+.icon-btn{
+  width:38px;height:38px;border-radius:11px;border:1px solid rgba(31,138,112,.28);
+  background:rgba(255,255,255,.55);backdrop-filter:blur(6px);color:var(--ink);
+  display:flex;align-items:center;justify-content:center;font-size:16.5px;
+  position:relative;cursor:pointer;box-shadow:0 1px 3px rgba(27,42,60,.08);
+}
+.icon-btn:active{background:rgba(31,138,112,.16);}
+.badge-dot{
+  position:absolute;top:-3px;right:-3px;min-width:17px;height:17px;padding:0 4px;
+  background:var(--stamp-red);color:#fff;border-radius:9px;
+  font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;
+  border:2px solid var(--paper);box-shadow:0 0 6px rgba(166,75,60,.5);
+}
+
+/* ---------- Page container ---------- */
+.page{padding:16px 16px 8px;max-width:560px;margin:0 auto;}
+.page-head{margin-bottom:14px;}
+.page-head h2{font-size:19px;margin:0 0 3px;color:var(--navy);}
+.page-head p{margin:0;font-size:12.5px;color:var(--ink-soft);}
+
+/* ---------- Cards ---------- */
+.card{
+  background:var(--paper-card);
+  border:1px solid var(--line-soft);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow-card);
+  padding:16px;
+  margin-bottom:12px;
+}
+.card h3{font-size:14.5px;margin:0 0 12px;color:var(--navy);display:flex;align-items:center;gap:7px;}
+
+/* ---------- Form fields ---------- */
+.field{margin-bottom:12px;}
+.field label{
+  display:block;font-size:11.5px;font-weight:600;color:var(--ink-soft);
+  margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;
+}
+.field input,.field select,.field textarea{
+  width:100%;padding:11px 13px;border:1.5px solid var(--line);
+  border-radius:var(--radius-sm);background:#fff;color:var(--ink);
+  font-size:15px;appearance:none;-webkit-appearance:none;
+}
+.field select{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235C5648' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 13px center;padding-right:34px;
+}
+.field textarea{min-height:72px;resize:vertical;}
+.field input:focus,.field select:focus,.field textarea:focus{
+  outline:none;border-color:var(--navy-soft);box-shadow:0 0 0 3px rgba(42,62,86,.12);
+}
+.field-row{display:flex;gap:10px;}
+.field-row .field{flex:1;margin-bottom:12px;}
+.hint{font-size:11px;color:var(--ink-faint);margin-top:3px;}
+
+/* ---------- Buttons ---------- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  padding:12px 18px;border-radius:11px;border:none;
+  font-size:14.5px;font-weight:600;cursor:pointer;
+  background:var(--navy);color:#fff;
+  width:100%;
+}
+.btn:active{background:var(--navy-deep);}
+.btn.gold{background:var(--gold);color:#fff;}
+.btn.gold:active{background:#146854;}
+.btn.outline{background:transparent;border:1.5px solid var(--navy);color:var(--navy);}
+.btn.outline:active{background:rgba(27,42,60,.06);}
+.btn.danger{background:var(--stamp-red);}
+.btn.ghost{background:transparent;color:var(--navy-soft);font-weight:500;padding:9px 12px;width:auto;}
+.btn.sm{width:auto;padding:8px 14px;font-size:13px;border-radius:9px;}
+.btn:disabled{opacity:.45;pointer-events:none;}
+.btn-row{display:flex;gap:9px;}
+.btn-row .btn{flex:1;}
+.fab{
+  position:fixed;right:18px;bottom:calc(84px + var(--safe-bottom));z-index:35;
+  width:56px;height:56px;border-radius:18px;
+  background:var(--gold);color:#fff;border:none;
+  box-shadow:var(--shadow-float);font-size:26px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+}
+.fab:active{transform:scale(.94);}
+
+/* ---------- Stamp badges (signature element) ---------- */
+.stamp{
+  display:inline-flex;align-items:center;justify-content:center;
+  font-family:'Fraunces',Georgia,serif;font-weight:800;font-size:9.5px;
+  letter-spacing:.6px;text-transform:uppercase;
+  padding:4px 9px;border-radius:20px;border:1.5px solid currentColor;
+  transform:rotate(-3deg);white-space:nowrap;
+}
+.stamp.new{color:var(--navy-soft);}
+.stamp.progress{color:#146854;}
+.stamp.complete{color:var(--sage);}
+.stamp.overdue{color:var(--stamp-red);}
+.stamp.hold{color:var(--ink-faint);}
+
+/* ---------- Simple pill badges (non-stamp, for lists/filters) ---------- */
+.pill{
+  display:inline-flex;align-items:center;font-size:11px;font-weight:600;
+  padding:3px 9px;border-radius:20px;
+}
+.pill.red{background:var(--stamp-red-bg);color:var(--stamp-red);}
+.pill.sage{background:var(--sage-bg);color:var(--sage);}
+.pill.gold{background:var(--gold-bg);color:#8a6a20;}
+.pill.navy{background:rgba(27,42,60,.08);color:var(--navy-soft);}
+
+/* ---------- List rows / case cards ---------- */
+.list-card{
+  background:var(--paper-card);border:1px solid var(--line-soft);
+  border-radius:var(--radius);margin-bottom:10px;overflow:hidden;
+  box-shadow:var(--shadow-card);position:relative;
+  border-left:4px solid var(--line);
+}
+.list-card.acc-red{border-left-color:var(--stamp-red);}
+.list-card.acc-gold{border-left-color:var(--gold);}
+.list-card.acc-sage{border-left-color:var(--sage);}
+.list-card.acc-navy{border-left-color:var(--navy-soft);}
+.list-card-body{padding:13px 14px;}
+.lc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px;}
+.lc-name{font-size:15px;font-weight:700;color:var(--navy);margin:0;}
+.lc-id{font-size:11px;color:var(--ink-faint);margin-top:1px;}
+.lc-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;}
+.lc-foot{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--line-soft);font-size:11.5px;color:var(--ink-soft);}
+.lc-progress-track{height:5px;border-radius:3px;background:var(--line-soft);overflow:hidden;margin-top:8px;}
+.lc-progress-fill{height:100%;background:var(--sage);border-radius:3px;}
+
+/* ---------- Search / toolbar ---------- */
+.searchbar{
+  display:flex;align-items:center;gap:8px;
+  background:#fff;border:1.5px solid var(--line);border-radius:12px;
+  padding:10px 13px;margin-bottom:12px;
+}
+.searchbar input{border:none;background:transparent;flex:1;font-size:14.5px;padding:0;}
+.searchbar input:focus{outline:none;}
+.chip-row{display:flex;gap:7px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.chip-row::-webkit-scrollbar{display:none;}
+.chip{
+  flex-shrink:0;padding:7px 13px;border-radius:20px;border:1.5px solid var(--line);
+  background:#fff;font-size:12.5px;font-weight:600;color:var(--ink-soft);cursor:pointer;white-space:nowrap;
+}
+.chip.active{background:var(--navy);border-color:var(--navy);color:#fff;}
+.chip-count{
+  display:inline-block;margin-left:5px;padding:1px 6px;border-radius:99px;
+  background:rgba(0,0,0,.08);font-size:10.5px;font-weight:700;
+}
+.chip.active .chip-count{background:rgba(255,255,255,.22);}
+
+/* ---------- Priority markers ---------- */
+.pri-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle;}
+.pri-dot.High{background:var(--stamp-red);}
+.pri-dot.Medium{background:#C9962E;}
+.pri-dot.Low{background:var(--sage);}
+.pill.pri-High{background:var(--stamp-red-bg);color:var(--stamp-red);}
+.pill.pri-Medium{background:#F8ECD3;color:#8a6a1f;}
+.pill.pri-Low{background:var(--sage-bg);color:var(--sage);}
+.task-row.pri-High{border-left:3px solid var(--stamp-red);}
+.task-row.pri-Medium{border-left:3px solid #C9962E;}
+.task-row.pri-Low{border-left:3px solid var(--sage);}
+
+/* ---------- Empty state ---------- */
+.empty{
+  text-align:center;padding:44px 20px;color:var(--ink-faint);
+}
+.empty .icon{font-size:38px;margin-bottom:10px;opacity:.5;}
+.empty .title{font-size:14.5px;font-weight:600;color:var(--ink-soft);margin-bottom:4px;}
+.empty .desc{font-size:12.5px;}
+
+/* ---------- Bottom Tab Bar ---------- */
+.tabbar{
+  position:fixed;bottom:0;left:0;right:0;z-index:50;
+  background:var(--navy);
+  padding:8px 4px calc(6px + var(--safe-bottom));
+  display:flex;justify-content:space-around;align-items:stretch;
+  box-shadow:0 -2px 12px rgba(0,0,0,.18);
+}
+.tab-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  background:none;border:none;color:#8FA0B5;padding:6px 2px;border-radius:10px;
+  font-size:9.5px;font-weight:600;letter-spacing:.2px;cursor:pointer;position:relative;
+}
+.tab-item .ti-icon{font-size:19px;}
+.tab-item.active{color:var(--gold);}
+.tab-item .ti-dot{
+  position:absolute;top:2px;right:22%;width:7px;height:7px;border-radius:50%;
+  background:var(--stamp-red);border:1.5px solid var(--navy);
+}
+
+/* ---------- Views ---------- */
+.view{display:none;}
+.view.active{display:block;animation:fadein .18s ease;}
+@keyframes fadein{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+
+/* ---------- Dashboard stat tiles ---------- */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.stat-tile{
+  background:var(--paper-card);border:1px solid var(--line-soft);border-radius:var(--radius);
+  padding:14px;box-shadow:var(--shadow-card);
+}
+.stat-tile .num{font-family:'Space Mono',monospace;font-size:24px;font-weight:700;color:var(--navy);}
+.stat-tile.red .num{color:var(--stamp-red);}
+.stat-tile.gold .num{color:#8a6a1f;}
+.stat-tile.sage .num{color:var(--sage);}
+.stat-tile .lbl{font-size:11px;color:var(--ink-soft);margin-top:2px;font-weight:600;}
+
+/* ---------- Section divider ---------- */
+.section-lbl{
+  font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;
+  color:var(--ink-faint);margin:20px 0 10px;padding-left:2px;
+}
+.section-lbl:first-child{margin-top:0;}
+
+/* ---------- Checkbox (custom, large touch target) ---------- */
+.check{
+  width:24px;height:24px;border-radius:7px;border:2px solid var(--line);
+  background:#fff;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:14px;color:#fff;
+}
+.check.checked{background:var(--sage);border-color:var(--sage);}
+.strike{text-decoration:line-through;color:var(--ink-faint);}
+
+/* ---------- Document picker checklist ---------- */
+.docpick-row{
+  display:flex;align-items:center;gap:11px;padding:11px 4px;
+  border-bottom:1px solid var(--line-soft);cursor:pointer;
+}
+.docpick-row:last-child{border-bottom:none;}
+.docpick-row .dp-name{flex:1;font-size:14px;font-weight:600;color:var(--ink);}
+.docpick-row.checked .dp-name{color:var(--gold);}
+
+/* ---------- Task row (Tasks tab — plain list) ---------- */
+.task-row{
+  display:flex;align-items:flex-start;gap:11px;padding:12px 14px;
+  background:var(--paper-card);border:1px solid var(--line-soft);
+  border-radius:var(--radius-sm);margin-bottom:8px;
+}
+.task-row .tr-text{flex:1;font-size:14px;padding-top:2px;}
+.task-row .tr-meta{font-size:11px;color:var(--ink-faint);margin-top:3px;}
+.task-progress-row{display:flex;align-items:center;gap:8px;margin-top:7px;}
+.task-progress-slider{
+  flex:1;height:4px;border-radius:3px;background:var(--line-soft);
+  -webkit-appearance:none;appearance:none;outline:none;
+}
+.task-progress-slider::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;width:16px;height:16px;border-radius:50%;
+  background:var(--gold);border:2px solid #fff;box-shadow:0 1px 3px rgba(27,42,60,.3);cursor:pointer;
+}
+.task-progress-slider::-moz-range-thumb{
+  width:16px;height:16px;border-radius:50%;background:var(--gold);border:2px solid #fff;
+  box-shadow:0 1px 3px rgba(27,42,60,.3);cursor:pointer;
+}
+.task-progress-pct{font-size:11px;font-weight:700;color:var(--gold);min-width:32px;text-align:right;}
+
+/* ---------- Home "Today's Focus" widget — modern task card ---------- */
+.focus-card{
+  background:var(--paper-card);border-radius:18px;border:1px solid var(--line-soft);
+  box-shadow:var(--shadow-card);margin-bottom:16px;overflow:hidden;
+}
+.focus-head{
+  display:flex;align-items:center;gap:14px;padding:16px 16px 14px;
+  cursor:pointer;
+}
+.focus-ring{position:relative;width:52px;height:52px;flex-shrink:0;}
+.focus-ring svg{transform:rotate(-90deg);width:52px;height:52px;}
+.focus-ring circle{fill:none;stroke-width:5;}
+.focus-ring .ring-bg{stroke:var(--paper-dim);}
+.focus-ring .ring-fg{stroke:var(--gold);stroke-linecap:round;transition:stroke-dashoffset .5s ease;}
+.focus-ring .ring-fg.all-done{stroke:var(--sage);}
+.focus-ring-label{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:'Fraunces',Georgia,serif;font-weight:700;font-size:14px;color:var(--ink);
+}
+.focus-title-wrap{flex:1;}
+.focus-title{font-size:15.5px;font-weight:700;color:var(--ink);}
+.focus-sub{font-size:11.5px;color:var(--ink-faint);margin-top:2px;}
+.focus-chevron{font-size:13px;color:var(--ink-faint);transition:transform .2s;}
+.focus-card.collapsed .focus-chevron{transform:rotate(-90deg);}
+
+.focus-body{max-height:2000px;overflow:hidden;transition:max-height .3s ease;}
+.focus-card.collapsed .focus-body{max-height:0;}
+
+.focus-group-lbl{
+  font-size:10.5px;font-weight:700;color:var(--ink-faint);text-transform:uppercase;
+  letter-spacing:.5px;padding:2px 16px 8px;
+}
+
+/* Swipeable task item */
+.swipe-wrap{position:relative;overflow:hidden;border-top:1px solid var(--line-soft);}
+.swipe-bg{
+  position:absolute;inset:0;background:var(--sage);color:#fff;
+  display:flex;align-items:center;padding:0 20px;font-size:13px;font-weight:700;gap:8px;
+}
+.swipe-fg{
+  position:relative;display:flex;align-items:center;gap:11px;padding:13px 16px;
+  background:var(--paper-card);border-left:4px solid var(--line);
+  touch-action:pan-y;user-select:none;
+  transition:transform .25s ease, opacity .25s ease;
+}
+.swipe-fg.pri-High{border-left-color:var(--stamp-red);}
+.swipe-fg.pri-Medium{border-left-color:#C9962E;}
+.swipe-fg.pri-Low{border-left-color:var(--sage);}
+.swipe-fg.dragging{transition:none;}
+.swipe-fg.done-anim{transform:translateX(110%);opacity:0;}
+.swipe-check{
+  width:23px;height:23px;border-radius:50%;border:2px solid var(--line);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;cursor:pointer;
+  transition:background .15s, border-color .15s;
+}
+.swipe-check.checked{background:var(--sage);border-color:var(--sage);}
+.swipe-name{flex:1;font-size:14px;font-weight:600;color:var(--ink);line-height:1.35;}
+.swipe-meta{display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap;}
+.focus-empty{
+  text-align:center;padding:28px 16px;color:var(--ink-faint);
+}
+.focus-empty .icon{font-size:32px;margin-bottom:6px;}
+.focus-empty .title{font-weight:700;color:var(--sage);font-size:14px;}
+.focus-footer{
+  padding:10px 16px 14px;border-top:1px solid var(--line-soft);
+}
+
+/* ---------- Needs Attention button (opens modal) ---------- */
+.attn-btn{
+  display:flex;align-items:center;gap:11px;width:100%;padding:13px 14px;
+  background:var(--paper-card);border:1.5px solid var(--line-soft);
+  border-radius:var(--radius);margin-bottom:16px;cursor:pointer;text-align:left;
+  box-shadow:var(--shadow-card);
+}
+.attn-btn.hot{border-color:var(--stamp-red);background:var(--stamp-red-bg);}
+.attn-btn-icon{font-size:20px;flex-shrink:0;}
+.attn-btn .tr-text{flex:1;font-size:14px;}
+.attn-btn .tr-meta{font-size:11.5px;color:var(--ink-faint);margin-top:2px;}
+.attn-btn.hot .tr-meta{color:var(--stamp-red);font-weight:600;}
+
+/* ---------- Modal / Sheet ---------- */
+.sheet-overlay{
+  position:fixed;inset:0;background:rgba(18,30,44,.5);z-index:60;
+  display:none;align-items:flex-end;justify-content:center;
+}
+.sheet-overlay.active{display:flex;}
+.sheet{
+  background:var(--paper);width:100%;max-width:560px;
+  border-radius:20px 20px 0 0;max-height:88vh;overflow-y:auto;
+  padding-bottom:calc(18px + var(--safe-bottom));
+  animation:sheetup .22s ease;
+}
+@keyframes sheetup{from{transform:translateY(100%);}to{transform:translateY(0);}}
+.sheet-handle{width:38px;height:4px;background:var(--line);border-radius:3px;margin:10px auto 4px;}
+.sheet-head{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:8px 18px 14px;border-bottom:1px solid var(--line-soft);
+}
+.sheet-head h3{margin:0;font-size:16.5px;color:var(--navy);}
+.sheet-close{
+  width:32px;height:32px;border-radius:9px;border:none;background:var(--paper-dim);
+  color:var(--ink-soft);font-size:16px;display:flex;align-items:center;justify-content:center;
+}
+.sheet-body{padding:16px 18px;}
+.sheet-foot{padding:14px 18px;border-top:1px solid var(--line-soft);}
+
+/* ---------- Reminder line in sheet ---------- */
+.reminder-item{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:10px 0;border-bottom:1px solid var(--line-soft);
+}
+.reminder-item:last-child{border-bottom:none;}
+.ri-name{font-size:13.5px;font-weight:600;color:var(--ink);}
+.ri-sub{font-size:11px;color:var(--ink-faint);margin-top:2px;}
+.ri-date{font-size:11px;font-weight:700;color:var(--stamp-red);white-space:nowrap;}
+
+/* ---------- Toast ---------- */
+.toast{
+  position:fixed;bottom:calc(90px + var(--safe-bottom));left:50%;
+  transform:translateX(-50%) translateY(10px);
+  background:var(--navy-deep);color:#fff;padding:11px 20px;border-radius:12px;
+  font-size:13px;font-weight:500;box-shadow:var(--shadow-float);
+  z-index:80;opacity:0;pointer-events:none;transition:all .25s ease;max-width:88vw;text-align:center;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ---------- Doc checklist row inside case detail ---------- */
+.doc-row{
+  display:flex;align-items:center;gap:11px;padding:11px 4px;
+  border-bottom:1px solid var(--line-soft);
+}
+.doc-row:last-child{border-bottom:none;}
+.doc-row .dr-name{flex:1;font-size:13.5px;}
+.doc-toggle{
+  display:flex;background:var(--paper-dim);border-radius:9px;padding:2px;flex-shrink:0;
+}
+.doc-toggle button{
+  border:none;background:none;padding:6px 10px;font-size:11px;font-weight:700;border-radius:7px;color:var(--ink-faint);
+}
+.doc-toggle button.on.received{background:var(--sage);color:#fff;}
+.doc-toggle button.on.pending{background:var(--stamp-red);color:#fff;}
+
+/* ---------- Detail header card ---------- */
+.detail-hero{
+  background:linear-gradient(155deg,var(--navy),var(--navy-deep));
+  color:var(--paper);border-radius:var(--radius);padding:18px;margin-bottom:14px;
+  box-shadow:var(--shadow-card);
+}
+.detail-hero .dh-name{font-family:'Fraunces',Georgia,serif;font-size:19px;font-weight:800;margin:0 0 3px;}
+.detail-hero .dh-id{font-size:12px;color:#AEBBCB;margin-bottom:12px;}
+.detail-hero .dh-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px;}
+.detail-hero .dh-grid .k{color:#8FA0B5;font-size:10px;text-transform:uppercase;letter-spacing:.4px;}
+.detail-hero .dh-grid .v{font-weight:600;margin-top:1px;}
+
+/* ---------- Progress ring mini ---------- */
+.mini-ring{width:44px;height:44px;flex-shrink:0;}
+
+/* ---------- Utility ---------- */
+.flex{display:flex;}
+.flex-1{flex:1;}
+.gap-8{gap:8px;}
+.mt-8{margin-top:8px;}
+.mb-0{margin-bottom:0;}
+.center{text-align:center;}
+.muted{color:var(--ink-faint);}
+.small{font-size:12px;}
+.hidden{display:none !important;}
+
+@media (min-width:560px){
+  .topbar,.tabbar{border-radius:0;}
+}
+</style>
+</head>
+<body>
+
+<!-- ===================== TOP BAR ===================== -->
+<div class="topbar">
+  <div class="brand">
+    <img src="icon-192.png" class="brand-mark" alt="Loan Tracker" onerror="this.style.display='none'">
+    <div>
+      <h1 id="topbarTitle">Loan Tracker</h1>
+      <div class="sub" id="topbarSub">Mobile Version</div>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <button class="icon-btn" onclick="openReminders()" aria-label="Reminders">
+      🔔<span class="badge-dot hidden" id="reminderDot">0</span>
+    </button>
+    <button class="icon-btn" onclick="showView('more')" aria-label="More">☰</button>
+  </div>
+</div>
+
+<div id="app">
+
+<!-- ===================== HOME / DASHBOARD ===================== -->
+<section class="view active" id="view-home">
+  <div class="page">
+    <div class="page-head">
+      <h2>Today's Snapshot</h2>
+      <p id="todayDateLbl">—</p>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-tile" onclick="showView('cases')">
+        <div class="num" id="statTotalCases">0</div>
+        <div class="lbl">Loan Cases</div>
+      </div>
+      <div class="stat-tile gold" onclick="showView('cases');setCaseFilter('pending')">
+        <div class="num" id="statPending">0</div>
+        <div class="lbl">Files Pending</div>
+      </div>
+      <div class="stat-tile red" onclick="showView('cases');setCaseFilter('overdue')">
+        <div class="num" id="statOverdue">0</div>
+        <div class="lbl">Overdue Docs</div>
+      </div>
+      <div class="stat-tile sage" onclick="showView('cases');setCaseFilter('complete')">
+        <div class="num" id="statCompleted">0</div>
+        <div class="lbl">Completed Files</div>
+      </div>
+      <div class="stat-tile gold" onclick="showView('tasks')">
+        <div class="num" id="statTasksToday">0</div>
+        <div class="lbl">Tasks Today</div>
+      </div>
+      <div class="stat-tile red" onclick="showView('payouts')">
+        <div class="num" id="statPayoutDue">₹0</div>
+        <div class="lbl" id="statPayoutDueLbl">Payouts Due</div>
+      </div>
+    </div>
+
+    <div class="section-lbl">Quick Add</div>
+    <div class="btn-row mt-8" style="margin-bottom:10px;">
+      <button class="btn gold sm" onclick="openNewCaseSheet()">📁 New Case</button>
+      <button class="btn outline sm" onclick="showView('tasks');openTaskSheet();">📝 Add Task</button>
+      <button class="btn outline sm" onclick="openNewLeadSheet()">🤝 New Lead</button>
+    </div>
+    <button class="attn-btn" id="attnBtn" onclick="openAttentionModal()">
+      <div class="attn-btn-icon" id="attnBtnIcon">✅</div>
+      <div class="tr-text">
+        <div style="font-weight:700;" id="attnBtnTitle">Needs Attention</div>
+        <div class="tr-meta" id="attnBtnMeta">Nothing urgent right now</div>
+      </div>
+      <div class="muted">›</div>
+    </button>
+
+    <div class="focus-card" id="focusCard">
+      <div class="focus-head" onclick="toggleFocusCard()">
+        <div class="focus-ring">
+          <svg viewBox="0 0 52 52">
+            <circle class="ring-bg" cx="26" cy="26" r="22"/>
+            <circle class="ring-fg" id="focusRingFg" cx="26" cy="26" r="22"/>
+          </svg>
+          <div class="focus-ring-label" id="focusRingLabel">0/0</div>
+        </div>
+        <div class="focus-title-wrap">
+          <div class="focus-title">Today's Focus</div>
+          <div class="focus-sub" id="focusSub">No tasks for today</div>
+        </div>
+        <div class="focus-chevron">▾</div>
+      </div>
+      <div class="focus-body" id="focusBody">
+        <div id="homeTasksList"></div>
+        <div class="focus-footer">
+          <button class="btn outline sm" style="width:100%;" onclick="showView('tasks')">View all tasks →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== LOAN CASES ===================== -->
+<section class="view" id="view-cases">
+  <div class="page">
+    <div class="page-head">
+      <h2>Loan Cases</h2>
+      <p>Track documents, signs & stamp for every file</p>
+    </div>
+
+    <div class="searchbar">
+      <span>🔍</span>
+      <input type="text" id="caseSearch" placeholder="Search name, case ID, mobile..." oninput="renderCasesList()">
+    </div>
+    <div class="chip-row" id="caseFilterChips">
+      <div class="chip active" data-f="all" onclick="setCaseFilter('all')">All</div>
+      <div class="chip" data-f="pending" onclick="setCaseFilter('pending')">Pending</div>
+      <div class="chip" data-f="overdue" onclick="setCaseFilter('overdue')">Overdue</div>
+      <div class="chip" data-f="complete" onclick="setCaseFilter('complete')">Completed</div>
+    </div>
+
+    <div id="casesList"></div>
+  </div>
+</section>
+
+<!-- ===================== CASE DETAIL ===================== -->
+<section class="view" id="view-casedetail">
+  <div class="page" id="caseDetailBody"></div>
+</section>
+
+<!-- ===================== TASK PLANNER ===================== -->
+<section class="view" id="view-tasks">
+  <div class="page">
+    <div class="page-head">
+      <h2>Tasks</h2>
+      <p>Add a task with a date — today lands in Daily, any other date in Scheduled</p>
+    </div>
+
+    <div class="chip-row">
+      <div class="chip active" data-tf="today" onclick="setTaskTab('today')">Today <span id="taskCountToday" class="chip-count"></span></div>
+      <div class="chip" data-tf="scheduled" onclick="setTaskTab('scheduled')">Scheduled <span id="taskCountScheduled" class="chip-count"></span></div>
+      <div class="chip" data-tf="done" onclick="setTaskTab('done')">Done</div>
+    </div>
+
+    <div id="tasksList"></div>
+  </div>
+</section>
+
+<!-- ===================== LEADS ===================== -->
+<section class="view" id="view-leads">
+  <div class="page">
+    <div class="page-head">
+      <h2>Leads</h2>
+      <p>Enter and manage walk-in / enquiry leads</p>
+    </div>
+    <div class="searchbar">
+      <span>🔍</span>
+      <input type="text" id="leadSearch" placeholder="Search name, mobile or loan type..." oninput="renderLeadsList()">
+    </div>
+    <div class="chip-row">
+      <div class="chip active" data-lf="pending" onclick="setLeadFilter('pending')">Pending</div>
+      <div class="chip" data-lf="converted" onclick="setLeadFilter('converted')">Converted</div>
+      <div class="chip" data-lf="noteligible" onclick="setLeadFilter('noteligible')">Not Eligible</div>
+      <div class="chip" data-lf="all" onclick="setLeadFilter('all')">All</div>
+    </div>
+    <div id="leadsList"></div>
+  </div>
+</section>
+
+<!-- ===================== DEALER PAYOUT (BRANCH LEVEL) ===================== -->
+<section class="view" id="view-payouts">
+  <div class="page">
+    <div class="page-head">
+      <h2>Dealer Payout <span style="font-size:14px;color:var(--text-faint);font-weight:600;">· Branch Level</span></h2>
+      <p>Car loan dealer payout tracking — due &amp; paid</p>
+    </div>
+
+    <div class="btn-row mt-8" style="margin-bottom:14px;">
+      <button class="btn gold sm" onclick="openNewPayoutSheet()">➕ Add Payout</button>
+      <button class="btn outline sm" onclick="triggerPayoutExcelUpload()">📤 Upload Excel</button>
+    </div>
+    <input type="file" id="payoutExcelInput" accept=".xlsx,.xls,.csv" class="hidden" onchange="handlePayoutExcelUpload(event)">
+
+    <div class="stat-grid" style="grid-template-columns:1fr 1fr;margin-bottom:16px;">
+      <div class="stat-tile red">
+        <div class="num" id="payoutDueCount">0</div>
+        <div class="lbl">Payouts Due</div>
+      </div>
+      <div class="stat-tile sage">
+        <div class="num" id="payoutDueAmt">₹0</div>
+        <div class="lbl">Amount Due</div>
+      </div>
+    </div>
+
+    <div class="searchbar">
+      <span>🔍</span>
+      <input type="text" id="payoutSearch" placeholder="Search customer, A/c, dealer person..." oninput="renderPayoutsList()">
+    </div>
+    <div class="chip-row">
+      <div class="chip active" data-pf="due" onclick="setPayoutFilter('due')">Due</div>
+      <div class="chip" data-pf="paid" onclick="setPayoutFilter('paid')">Paid</div>
+      <div class="chip" data-pf="all" onclick="setPayoutFilter('all')">All</div>
+    </div>
+
+    <div id="payoutsList"></div>
+  </div>
+</section>
+
+<!-- ===================== MORE / MIS / DATA ===================== -->
+<section class="view" id="view-more">
+  <div class="page">
+    <div class="page-head">
+      <h2>Reports &amp; Data</h2>
+      <p>MIS reports, backup, and settings</p>
+    </div>
+
+    <div class="section-lbl">MIS Reports</div>
+    <div class="card" style="padding:6px;" id="reportsMenu"></div>
+
+    <div class="section-lbl">Notifications</div>
+    <div class="card" id="notifStatusCard">
+      <h3>🔔 Daily Reminders <span class="pill navy" id="notifStatusPill" style="margin-left:auto;">Off</span></h3>
+      <p class="small muted mt-8" style="margin-bottom:12px;">
+        Get a notification each morning listing today's open tasks, plus alerts for overdue tasks, documents and lead follow-ups — while this app is open or running in the background on this device.
+      </p>
+      <button class="btn gold sm" style="width:100%;" onclick="enableNotifications()" id="notifEnableBtn">🔔 Enable Notifications</button>
+    </div>
+
+    <div class="section-lbl">Database</div>
+    <div class="card" id="dbStatusCard">
+      <h3>☁️ Supabase Sync <span class="pill navy" id="dbStatusPill" style="margin-left:auto;">Not connected</span></h3>
+      <p class="small muted mt-8" style="margin-bottom:12px;">
+        Connect once and your whole branch team shares live data — no more file export/import.
+      </p>
+      <div class="btn-row">
+        <button class="btn outline sm" onclick="openDbSettingsSheet()">⚙️ Connect / Settings</button>
+        <button class="btn gold sm" onclick="manualSync()">🔄 Sync Now</button>
+      </div>
+      <button class="btn ghost sm mt-8" style="width:100%;" onclick="copySetupSql()">📋 Copy One-Time Setup SQL</button>
+    </div>
+    <div class="card" id="storageInfoCard"></div>
+  </div>
+</section>
+
+</div><!-- /#app -->
+
+<button class="fab hidden" id="fabBtn" onclick="handleFabTap()">➕</button>
+
+<!-- ===================== BOTTOM TAB BAR ===================== -->
+<div class="tabbar">
+  <button class="tab-item active" data-view="home" onclick="showView('home')">
+    <span class="ti-icon">🏠</span><span>Home</span>
+  </button>
+  <button class="tab-item" data-view="cases" onclick="showView('cases')">
+    <span class="ti-icon">📁</span><span>Cases</span>
+  </button>
+  <button class="tab-item" data-view="tasks" onclick="showView('tasks')">
+    <span class="ti-icon">✅</span><span>Tasks</span>
+  </button>
+  <button class="tab-item" data-view="payouts" onclick="showView('payouts')">
+    <span class="ti-icon">🚗</span><span>Payout</span>
+  </button>
+  <button class="tab-item" data-view="leads" onclick="showView('leads')">
+    <span class="ti-icon">🤝</span><span>Leads</span>
+  </button>
+  <button class="tab-item" data-view="more" onclick="showView('more')">
+    <span class="ti-icon">☰</span><span>More</span>
+  </button>
+</div>
+
+<!-- ===================== SHEETS (bottom modals) ===================== -->
+
+<!-- Reminders -->
+<div class="sheet-overlay" id="sheetReminders">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h3>🔔 Reminders</h3><button class="sheet-close" onclick="closeSheet('sheetReminders')">✕</button></div>
+    <div class="sheet-body" id="remindersBody"></div>
+  </div>
+</div>
+
+<!-- Needs Attention -->
+<div class="sheet-overlay" id="sheetAttention">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h3>⚠️ Needs Attention</h3><button class="sheet-close" onclick="closeSheet('sheetAttention')">✕</button></div>
+    <div class="sheet-body" id="attentionModalBody"></div>
+  </div>
+</div>
+
+<!-- Database (Supabase) Settings -->
+<div class="sheet-overlay" id="sheetDbSettings">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h3>☁️ Database Connection</h3><button class="sheet-close" onclick="closeSheet('sheetDbSettings')">✕</button></div>
+    <div class="sheet-body">
+      <p class="small muted" style="margin-bottom:14px;">
+        Create a free project at supabase.com, run the setup SQL once (see the note below the app), then paste the Project URL and anon public key here. Everyone on your branch who connects with the same Workspace Key shares one live dataset.
+      </p>
+      <div class="field">
+        <label>Supabase Project URL *</label>
+        <input type="text" id="db-url" placeholder="https://xxxxx.supabase.co">
+      </div>
+      <div class="field">
+        <label>Supabase Anon Public Key *</label>
+        <textarea id="db-anonkey" placeholder="eyJhbGciOi..." style="min-height:60px;"></textarea>
+      </div>
+      <div class="field">
+        <label>Workspace Key</label>
+        <input type="text" id="db-workspace" placeholder="main" value="main">
+        <div class="hint">Use the same word on every phone in the branch (e.g. your branch code) so you all see one shared dataset.</div>
+      </div>
+    </div>
+    <div class="sheet-foot btn-row">
+      <button class="btn outline sm" onclick="disconnectDb()">Disconnect</button>
+      <button class="btn gold sm" onclick="saveDbSettingsFromSheet()">Save &amp; Connect</button>
+    </div>
+  </div>
+</div>
+
+<!-- New Case -->
+<div class="sheet-overlay" id="sheetNewCase">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h3>📁 New Loan Case</h3><button class="sheet-close" onclick="closeSheet('sheetNewCase')">✕</button></div>
+    <div class="sheet-body">
+      <div class="field">
+        <label>Customer Name *</label>
+        <input type="text" id="nf-name" placeholder="Full name">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Case / Loan A/c ID *</label>
+          <input type="text" id="nf-caseid" class="mono" placeholder="e.g. LN-2026-014">
+        </div>
+        <div class="field">
+          <label>Loan Type</label>
+          <select id="nf-loantype" onchange="onCaseLoanTypeChange()"></select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Sanction Date</label>
+          <input type="date" id="nf-sanctiondate">
+        </div>
+        <div class="field">
+          <label>Loan Amount (₹)</label>
+          <input type="number" id="nf-amount" placeholder="0" min="0">
+        </div>
+      </div>
+      <div class="field">
+        <label>Branch</label>
+        <input type="text" id="nf-branch" placeholder="Branch name">
+      </div>
+      <div class="field">
+        <label>Remarks</label>
+        <textarea id="nf-remark" placeholder="Any note about this case"></textarea>
+      </div>
+      <div class="field">
+        <label>Documents *</label>
+        <button type="button" class="btn outline" style="width:100%;justify-content:space-between;" onclick="openDocPickerModal()">
+          <span id="nf-docs-summary">📋 Choose Pending Docs</span><span>›</span>
+        </button>
+        <input type="hidden" id="nf-docs-selected" value="">
+      </div>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn gold" onclick="createCaseFromSheet()">Create Case</button>
+    </div>
+  </div>
+</div>
+
+<!-- Document Picker — per-loan-type growable checklist -->
+<div class="sheet-overlay" id="sheetDocPicker">
+  <div class="sheet" style="max-height:90vh;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <h3>📋 Pending Docs <span id="docPickerLoanType" class="pill navy" style="margin-left:6px;"></span></h3>
+      <button class="sheet-close" onclick="closeDocPickerModal()">✕</button>
+    </div>
+    <div class="sheet-body">
+      <p class="small muted" style="margin-top:-6px;margin-bottom:12px;">Tick every document this case needs. This list is remembered per loan type — add a new one below and it'll appear as a checkbox for every future case of this type too.</p>
+      <div id="docPickerList"></div>
+      <div class="field" style="display:flex;gap:8px;align-items:flex-end;margin-top:14px;border-top:1px solid var(--line-soft);padding-top:14px;">
+        <div style="flex:1;">
+          <label>Add new document type</label>
+          <input type="text" id="docPickerNewName" placeholder="e.g. Cancelled Cheque" onkeydown="if(event.key==='Enter'){event.preventDefault();addDocPickerType();}">
+        </div>
+        <button type="button" class="btn gold sm" style="width:auto;padding:11px 16px;" onclick="addDocPickerType()">+ Add</button>
+      </div>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn gold" onclick="confirmDocPicker()">Done — <span id="docPickerCount">0</span> selected</button>
+    </div>
+  </div>
+</div>
+
+<!-- Task — unified add/edit. Date decides Daily vs Scheduled automatically. -->
+<div class="sheet-overlay" id="sheetTask">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h3 id="taskSheetTitle">✅ Add Task</h3><button class="sheet-close" onclick="closeSheet('sheetTask')">✕</button></div>
+    <div class="sheet-body">
+      <input type="hidden" id="tk-editid">
+      <div class="field">
+        <label>Task *</label>
+        <input type="text" id="tk-name" placeholder="e.g. Follow up for stamp duty">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Date *</label>
+          <input type="date" id="tk-date" onchange="updateTaskDateHint()">
+        </div>
+        <div class="field">
+          <label>Priority</label>
+          <select id="tk-priority">
+            <option>High</option>
+            <option selected>Medium</option>
+            <option>Low</option>
+          </select>
+        </div>
+      </div>
+      <p class="small muted" id="tk-date-hint" style="margin:-6px 0 14px;"></p>
+      <div class="field">
+        <label>Linked Case (optional)</label>
+        <select id="tk-case"><option value="">None</option></select>
+      </div>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn gold" id="taskSheetSaveBtn" onclick="saveTaskFromSheet()">Save Task</button>
+    </div>
+  </div>
+</div>
+
+<!-- New / Edit Lead -->
+<div class="sheet-overlay" id="sheetNewLead">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h3 id="leadSheetTitle">🤝 Add Lead</h3><button class="sheet-close" onclick="closeSheet('sheetNewLead')">✕</button></div>
+    <div class="sheet-body">
+      <input type="hidden" id="ld-editid">
+      <div class="field">
+        <label>Name *</label>
+        <input type="text" id="ld-name" placeholder="Customer full name">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Mobile Number *</label>
+          <input type="tel" id="ld-mobile" placeholder="10-digit mobile" maxlength="15">
+        </div>
+        <div class="field">
+          <label>Loan Type *</label>
+          <select id="ld-loantype"></select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Follow-up Date</label>
+        <input type="date" id="ld-followup">
+      </div>
+      <div class="field">
+        <label>Remarks</label>
+        <textarea id="ld-remark" placeholder="Requirement, what's pending, when likely to convert..." style="min-height:90px;"></textarea>
+      </div>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn gold" onclick="createLeadFromSheet()" id="leadSheetSaveBtn">Add Lead</button>
+    </div>
+  </div>
+</div>
+
+<!-- Mark Lead Not Eligible -->
+<div class="sheet-overlay" id="sheetNotEligible">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h3>🚫 Mark Not Eligible</h3><button class="sheet-close" onclick="closeSheet('sheetNotEligible')">✕</button></div>
+    <div class="sheet-body">
+      <input type="hidden" id="ne-leadid">
+      <div class="field">
+        <label>Reason *</label>
+        <textarea id="ne-reason" placeholder="e.g. Low CIBIL, income mismatch, not interested..." style="min-height:90px;"></textarea>
+      </div>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn danger" onclick="confirmNotEligible()">Mark Not Eligible</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Dealer Payout -->
+<div class="sheet-overlay" id="sheetNewPayout">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h3 id="payoutSheetTitle">🚗 Add Dealer Payout</h3><button class="sheet-close" onclick="closeSheet('sheetNewPayout')">✕</button></div>
+    <div class="sheet-body">
+      <input type="hidden" id="dp-editid">
+      <div class="field">
+        <label>Showroom *</label>
+        <input type="text" id="dp-showroom" placeholder="Showroom / dealership name">
+      </div>
+      <div class="field">
+        <label>Customer Name *</label>
+        <input type="text" id="dp-customer" placeholder="Customer full name">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Sanction Date</label>
+          <input type="date" id="dp-sanctiondate">
+        </div>
+        <div class="field">
+          <label>Loan Amount (₹)</label>
+          <input type="number" id="dp-loanamt" placeholder="0" min="0">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Due Payout Amt (₹) *</label>
+          <input type="number" id="dp-dueamt" placeholder="0" min="0">
+        </div>
+        <div class="field">
+          <label>Dealer Sales Person *</label>
+          <input type="text" id="dp-salesperson" placeholder="Name">
+        </div>
+      </div>
+      <div class="field">
+        <label>Dealer Letter No.</label>
+        <input type="text" id="dp-dealerletter" class="mono" placeholder="e.g. DL-2026-014">
+      </div>
+      <div class="field">
+        <label>Car Loan A/c (optional)</label>
+        <input type="text" id="dp-acct" class="mono" placeholder="e.g. CL-2026-014">
+      </div>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn gold" onclick="createPayoutFromSheet()" id="payoutSheetSaveBtn">Add to Due List</button>
+    </div>
+  </div>
+</div>
+
+<!-- Mark Payout Paid -->
+<div class="sheet-overlay" id="sheetPayPayout">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h3>💸 Record Payout Payment</h3><button class="sheet-close" onclick="closeSheet('sheetPayPayout')">✕</button></div>
+    <div class="sheet-body">
+      <div class="card" style="margin-bottom:14px;" id="payPayoutSummary"></div>
+      <div class="field">
+        <label>Amount (₹) *</label>
+        <input type="number" id="pp-amount" placeholder="0" min="0">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Date of Payment *</label>
+          <input type="date" id="pp-date">
+        </div>
+        <div class="field">
+          <label>Payment Made By *</label>
+          <input type="text" id="pp-madeby" placeholder="Name">
+        </div>
+      </div>
+      <input type="hidden" id="pp-payoutid">
+    </div>
+    <div class="sheet-foot">
+      <button class="btn gold" onclick="savePayoutPaymentFromSheet()">Mark as Paid</button>
+    </div>
+  </div>
+</div>
+
+<!-- Report Result -->
+<div class="sheet-overlay" id="sheetReport">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h3 id="reportSheetTitle">Report</h3><button class="sheet-close" onclick="closeSheet('sheetReport')">✕</button></div>
+    <div class="sheet-body" id="reportSheetBody"></div>
+    <div class="sheet-foot btn-row">
+      <button class="btn outline sm" onclick="exportReportCsv()">⬇️ Excel (CSV)</button>
+      <button class="btn gold sm" onclick="exportReportPdf()">📄 PDF</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   DATA LAYER — Supabase (shared team database) with an
+   IndexedDB local cache for speed + offline resilience.
+   The whole app state is kept as ONE JSON blob (same shape
+   as before) stored in a single row per "workspace" so every
+   existing saveData()/loadData() call site needed no changes.
+========================================================= */
+const IDB_NAME = 'loanRegisterDB';
+const IDB_STORE = 'state';
+const IDB_KEY = 'appState';
+let idbInstance = null;
+
+function idbOpen(){
+  return new Promise((resolve, reject)=>{
+    if(idbInstance) return resolve(idbInstance);
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = ()=>{
+      const db = req.result;
+      if(!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE);
+    };
+    req.onsuccess = ()=>{ idbInstance = req.result; resolve(idbInstance); };
+    req.onerror = ()=>reject(req.error);
+  });
+}
+async function idbGet(){
+  const db = await idbOpen();
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const req = tx.objectStore(IDB_STORE).get(IDB_KEY);
+    req.onsuccess = ()=>resolve(req.result || null);
+    req.onerror = ()=>reject(req.error);
+  });
+}
+async function idbSet(value){
+  const db = await idbOpen();
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(value, IDB_KEY);
+    tx.oncomplete = ()=>resolve(true);
+    tx.onerror = ()=>reject(tx.error);
+  });
+}
+
+/* ---------- Supabase connection ---------- */
+const DB_CFG_KEY = 'ltm_db_cfg';
+const DB_TABLE = 'loan_tracker_state';
+let DB_CFG = null;        // {url, anonKey, workspace}
+let SB = null;             // supabase client
+let DB_CONNECTED = false;  // last known reachability
+let REALTIME_CHANNEL = null;
+let SAVING_REMOTE = false; // true while our own upsert is in flight (ignore the realtime echo it causes)
+let SYNC_DEBOUNCE_TIMER = null;
+
+// Built-in defaults so the branch team doesn't need to type these in —
+// anon keys are safe to ship in client code by design (access is governed
+// by the Row Level Security policy on the table, not by hiding this key).
+const DEFAULT_DB_CFG = {
+  url: 'https://fxscwgwumtmsvmntkynf.supabase.co',
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ4c2N3Z3d1bXRtc3ZtbnRreW5mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0MTA2MTEsImV4cCI6MjEwMTk4NjYxMX0.ILjj_s5zohUY5HEQU_shC7teUgFKENtTCipPaNDaULw',
+  workspace: 'main'
+};
+function loadDbConfig(){
+  try{
+    const raw = localStorage.getItem(DB_CFG_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      if(parsed && parsed.disabled) return null;
+      return parsed;
+    }
+  }catch(e){ /* fall through to default */ }
+  return { ...DEFAULT_DB_CFG };
+}
+function saveDbConfig(cfg){
+  localStorage.setItem(DB_CFG_KEY, JSON.stringify(cfg));
+}
+function clearDbConfig(){
+  // explicit disconnect must stick — store a disabled marker rather than
+  // just removing the key, otherwise loadDbConfig() would fall back to
+  // the built-in defaults again on the next load.
+  localStorage.setItem(DB_CFG_KEY, JSON.stringify({ disabled: true }));
+}
+function initSupabaseClient(){
+  DB_CFG = loadDbConfig();
+  if(DB_CFG && DB_CFG.url && DB_CFG.anonKey && window.supabase){
+    try{
+      SB = window.supabase.createClient(DB_CFG.url, DB_CFG.anonKey, {
+        realtime: { params: { eventsPerSecond: 5 } }
+      });
+    }catch(e){ console.error('Supabase init failed', e); SB = null; }
+  } else {
+    SB = null;
+  }
+  updateDbStatusPill();
+}
+function updateDbStatusPill(){
+  const pill = document.getElementById('dbStatusPill');
+  if(!pill) return;
+  if(!DB_CFG || !DB_CFG.url){
+    pill.textContent = 'Not connected';
+    pill.className = 'pill navy';
+  } else if(DB_CONNECTED){
+    pill.textContent = 'Connected · ' + (DB_CFG.workspace||'main');
+    pill.className = 'pill sage';
+  } else {
+    pill.textContent = 'Connecting…';
+    pill.className = 'pill gold';
+  }
+}
+function subscribeRealtime(){
+  if(!SB || !DB_CFG) return;
+  if(REALTIME_CHANNEL){ SB.removeChannel(REALTIME_CHANNEL); REALTIME_CHANNEL = null; }
+  REALTIME_CHANNEL = SB.channel('ltm-'+(DB_CFG.workspace||'main'))
+    .on('postgres_changes',
+      { event:'UPDATE', schema:'public', table:DB_TABLE, filter:`id=eq.${DB_CFG.workspace||'main'}` },
+      (payload)=>{
+        if(SAVING_REMOTE) return; // this is the echo of our own write
+        const incoming = payload.new && payload.new.data;
+        if(!incoming) return;
+        if(JSON.stringify(incoming) === JSON.stringify(DATA)) return;
+        DATA = incoming;
+        normalizeData();
+        idbSet(DATA).catch(()=>{});
+        showToast('🔄 Synced update from teammate');
+        rerenderCurrentView();
+      })
+    .subscribe(status=>{ /* noop */ });
+}
+function rerenderCurrentView(){
+  if(CURRENT_VIEW==='home') renderHome();
+  else if(CURRENT_VIEW==='cases') renderCasesList();
+  else if(CURRENT_VIEW==='tasks') renderTasksTab();
+  else if(CURRENT_VIEW==='payouts') renderPayoutsList();
+  else if(CURRENT_VIEW==='leads') renderLeadsList();
+  else if(CURRENT_VIEW==='more') renderMoreView();
+  refreshReminderDot();
+}
+
+/* =========================================================
+   DATA MODEL
+========================================================= */
+function defaultLoanTypes(){
+  return ['Gold Loan','Home Loan','Personal Loan','Auto Loan','Pension Loan','Loan Against Security','Education Loan','MSME / Business Loan','Agri Loan','Other'];
+}
+function defaultDocMaster(){
+  return ['Photo','ID Proof','Address Proof','PAN Card','Income Proof','Bank Statement','Property Papers','Loan Application Form','Guarantor Documents','Stamp Paper'];
+}
+// Per-loan-type document checklist. Auto Loan ships with the standard
+// dealer-loan document set; any loan type not listed here falls back to
+// the generic defaultDocMaster() the first time it's used.
+function defaultDocMasterByLoanType(){
+  return {
+    'Auto Loan': ['Photo of Borrower','Photo of Co-Borrower','Payslip','Form 16/ITR','PSS Report','Aadhaar','PAN']
+  };
+}
+function defaultState(){
+  return {
+    cases: [],
+    tasks: [],
+    dailyTasks: [],
+    dailyTaskLastRollDate: '',
+    leads: [],
+    dealerPayouts: [],
+    docMaster: defaultDocMaster(),
+    docMasterByLoanType: defaultDocMasterByLoanType(),
+    loanTypes: defaultLoanTypes(),
+    nextCaseSeq: 1,
+    nextTaskSeq: 1
+  };
+}
+
+let DATA = defaultState();
+let PENDING_LEAD_CONVERSION = null;
+
+function normalizeData(){
+  if(!DATA.loanTypes) DATA.loanTypes = defaultLoanTypes();
+  // Merge in any newly-introduced default loan types (e.g. Pension Loan,
+  // Loan Against Security) for installs that already had their own saved
+  // list, without disturbing types the branch has since added or edited.
+  defaultLoanTypes().forEach(lt=>{ if(!DATA.loanTypes.includes(lt)) DATA.loanTypes.push(lt); });
+  if(!DATA.docMaster) DATA.docMaster = defaultDocMaster();
+  if(!DATA.docMasterByLoanType) DATA.docMasterByLoanType = defaultDocMasterByLoanType();
+  if(!DATA.dailyTasks) DATA.dailyTasks = [];
+  if(!DATA.dailyTaskLastRollDate) DATA.dailyTaskLastRollDate = '';
+  if(!DATA.leads) DATA.leads = [];
+  if(!DATA.dealerPayouts) DATA.dealerPayouts = [];
+  if(!DATA.tasks) DATA.tasks = [];
+  if(!DATA.cases) DATA.cases = [];
+  if(!DATA.nextCaseSeq) DATA.nextCaseSeq = 1;
+  DATA.tasks.forEach(t=>{ if(typeof t.progress!=='number') t.progress = t.completed ? 100 : 0; });
+  DATA.leads.forEach(l=>{
+    if(!l.status) l.status = l.converted ? 'converted' : 'pending';
+    if(!l.notEligibleReason) l.notEligibleReason = '';
+  });
+
+  // ---- One-time migration: fold legacy dailyTasks[] (text-only, no
+  // date/priority) into the unified tasks[] list, then empty the old
+  // array. dailyTasks[] is kept around (always []) purely so JSON
+  // exported to/from the office desktop tool still has the field it
+  // expects — nothing in this app reads from it anymore.
+  if(DATA.dailyTasks.length){
+    DATA.dailyTasks.forEach(dt=>{
+      DATA.tasks.push({
+        id: dt.id || uid('task'),
+        name: dt.text || '',
+        endDate: dt.dateAdded || todayISO(),
+        createdDate: dt.dateAdded || todayISO(),
+        priority: 'Medium',
+        caseId: null,
+        completed: !!dt.completed,
+        completedAt: dt.completedAt || '',
+        createdAt: dt.dateAdded ? dt.dateAdded+'T00:00:00.000Z' : new Date().toISOString()
+      });
+    });
+    DATA.dailyTasks = [];
+  }
+  // Backfill createdDate on any older tasks[] rows saved before this
+  // field existed, so the Daily/Scheduled split still works for them.
+  DATA.tasks.forEach(t=>{ if(!t.createdDate) t.createdDate = (t.createdAt||'').slice(0,10) || t.endDate || todayISO(); });
+  if(!DATA.nextTaskSeq) DATA.nextTaskSeq = 1;
+}
+
+async function loadData(){
+  // 1) fast local cache so the UI has something instantly
+  try{
+    const cached = await idbGet();
+    if(cached){ DATA = cached; } else { DATA = defaultState(); }
+    normalizeData();
+  }catch(e){
+    console.error('Local cache load failed', e);
+    DATA = defaultState();
+  }
+
+  // 2) if a database is connected, it's the source of truth for the team
+  initSupabaseClient();
+  if(SB && DB_CFG){
+    try{
+      const workspace = DB_CFG.workspace || 'main';
+      const { data, error } = await SB.from(DB_TABLE).select('data').eq('id', workspace).maybeSingle();
+      if(error) throw error;
+      if(data && data.data){
+        DATA = data.data;
+        normalizeData();
+        await idbSet(DATA);
+      } else {
+        // no row yet for this workspace — seed it with what we have locally
+        SAVING_REMOTE = true;
+        await SB.from(DB_TABLE).upsert({ id: workspace, data: DATA, updated_at: new Date().toISOString() });
+        SAVING_REMOTE = false;
+      }
+      DB_CONNECTED = true;
+      subscribeRealtime();
+    }catch(e){
+      console.error('Supabase load failed, using local data', e);
+      DB_CONNECTED = false;
+      showToast('⚠️ Could not reach database — showing local copy');
+    }
+    updateDbStatusPill();
+  }
+}
+
+async function saveData(){
+  try{
+    await idbSet(DATA);
+  }catch(e){
+    console.error('Local save failed', e);
+    showToast('⚠️ Could not save locally — storage may be full');
+  }
+  if(SB && DB_CFG){
+    clearTimeout(SYNC_DEBOUNCE_TIMER);
+    SYNC_DEBOUNCE_TIMER = setTimeout(pushToSupabase, 500);
+  }
+}
+async function pushToSupabase(){
+  if(!SB || !DB_CFG) return;
+  const workspace = DB_CFG.workspace || 'main';
+  SAVING_REMOTE = true;
+  try{
+    const { error } = await SB.from(DB_TABLE).upsert({ id: workspace, data: DATA, updated_at: new Date().toISOString() });
+    if(error) throw error;
+    DB_CONNECTED = true;
+  }catch(e){
+    console.error('Supabase sync failed', e);
+    DB_CONNECTED = false;
+    showToast('⚠️ Saved on this phone, but sync to database failed');
+  }
+  updateDbStatusPill();
+  setTimeout(()=>{ SAVING_REMOTE = false; }, 300);
+}
+async function manualSync(){
+  if(!DB_CFG || !DB_CFG.url){ showToast('Connect a database first — see Settings'); openDbSettingsSheet(); return; }
+  showToast('Syncing…');
+  await loadData();
+  rerenderCurrentView();
+  showToast(DB_CONNECTED ? 'Synced' : 'Sync failed — check connection settings');
+}
+
+/* ---------- Database settings sheet ---------- */
+function openDbSettingsSheet(){
+  const cfg = loadDbConfig() || {};
+  document.getElementById('db-url').value = cfg.url || '';
+  document.getElementById('db-anonkey').value = cfg.anonKey || '';
+  document.getElementById('db-workspace').value = cfg.workspace || 'main';
+  openSheet('sheetDbSettings');
+}
+async function saveDbSettingsFromSheet(){
+  const url = document.getElementById('db-url').value.trim();
+  const anonKey = document.getElementById('db-anonkey').value.trim();
+  const workspace = document.getElementById('db-workspace').value.trim() || 'main';
+  if(!url || !anonKey){ showToast('Please fill both the Supabase URL and anon key'); return; }
+  saveDbConfig({url, anonKey, workspace});
+  showToast('Connecting…');
+  closeSheet('sheetDbSettings');
+  await loadData();
+  rerenderCurrentView();
+  renderMoreView();
+  showToast(DB_CONNECTED ? '✅ Connected — data will now sync for the whole branch' : '⚠️ Saved settings, but could not reach the database — check URL/key');
+}
+function disconnectDb(){
+  if(!confirm('Disconnect this database? Your data stays safely on this phone, but stops syncing with your team until you reconnect.')) return;
+  clearDbConfig();
+  if(REALTIME_CHANNEL && SB){ SB.removeChannel(REALTIME_CHANNEL); REALTIME_CHANNEL = null; }
+  SB = null; DB_CFG = null; DB_CONNECTED = false;
+  updateDbStatusPill();
+  closeSheet('sheetDbSettings');
+  showToast('Database disconnected');
+}
+const SETUP_SQL = `create table if not exists loan_tracker_state (
+  id text primary key,
+  data jsonb not null,
+  updated_at timestamptz not null default now()
+);
+
+alter table loan_tracker_state enable row level security;
+
+create policy "loan_tracker_anon_all"
+  on loan_tracker_state
+  for all
+  to anon
+  using (true)
+  with check (true);
+
+alter publication supabase_realtime add table loan_tracker_state;`;
+async function copySetupSql(){
+  try{
+    await navigator.clipboard.writeText(SETUP_SQL);
+    showToast('SQL copied — paste into Supabase → SQL Editor and run once');
+  }catch(e){
+    alert(SETUP_SQL);
+  }
+}
+
+/* ---------- small helpers ---------- */
+function uid(prefix){ return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function todayISO(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function daysDiff(iso){
+  if(!iso) return null;
+  const today = new Date(todayISO()+'T00:00:00');
+  const target = new Date(iso+'T00:00:00');
+  return Math.round((target-today)/86400000);
+}
+function fmtDate(iso){
+  if(!iso) return '—';
+  const d = new Date(iso+'T00:00:00');
+  if(isNaN(d)) return iso;
+  return d.toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'});
+}
+function fmtAmount(v){
+  if(v===undefined||v===null||v==='') return '—';
+  const n = Number(v);
+  if(isNaN(n)) return escapeHtml(String(v));
+  return '₹' + n.toLocaleString('en-IN');
+}
+function escapeHtml(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+let toastTimer=null;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 2400);
+}
+
+/* =========================================================
+   VIEW NAVIGATION
+========================================================= */
+let CURRENT_VIEW = 'home';
+let CURRENT_CASE_ID = null;
+
+function showView(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  const target = document.getElementById('view-'+name);
+  if(target) target.classList.add('active');
+  document.querySelectorAll('.tab-item').forEach(t=>t.classList.toggle('active', t.dataset.view===name));
+  CURRENT_VIEW = name;
+
+  const titles = {
+    home:['Loan Tracker','Mobile Version'],
+    cases:['Loan Cases','All files'],
+    casedetail:['Case Detail',''],
+    tasks:['Tasks','Daily & scheduled'],
+    leads:['Walk-in Leads','Prospects'],
+    payouts:['Dealer Payout','Branch level'],
+    more:['Reports & Data','']
+  };
+  if(titles[name]){
+    document.getElementById('topbarTitle').textContent = titles[name][0];
+    document.getElementById('topbarSub').textContent = titles[name][1];
+  }
+
+  const fab = document.getElementById('fabBtn');
+  fab.classList.toggle('hidden', !['cases','tasks','leads','payouts'].includes(name));
+
+  if(name==='home') renderHome();
+  if(name==='cases') renderCasesList();
+  if(name==='tasks') renderTasksTab();
+  if(name==='payouts') renderPayoutsList();
+  if(name==='leads') renderLeadsList();
+  if(name==='more') renderMoreView();
+
+  window.scrollTo(0,0);
+}
+
+function handleFabTap(){
+  if(CURRENT_VIEW==='cases') openNewCaseSheet();
+  else if(CURRENT_VIEW==='tasks') openTaskSheet();
+  else if(CURRENT_VIEW==='leads') openNewLeadSheet();
+  else if(CURRENT_VIEW==='payouts') openNewPayoutSheet();
+}
+
+function openSheet(id){ document.getElementById(id).classList.add('active'); }
+function closeSheet(id){ document.getElementById(id).classList.remove('active'); }
+
+/* =========================================================
+   CASE LOGIC
+========================================================= */
+function caseStats(c){
+  const total = c.docs.length;
+  const received = c.docs.filter(d=>d.status==='Received').length;
+  const allDocsDone = total===0 ? true : received===total;
+  const signsDone = c.loSign && c.bmSign && c.stamp;
+  const completed = allDocsDone && signsDone;
+  return {total, received, allDocsDone, signsDone, completed};
+}
+function casePendingItems(c){
+  const items = [];
+  c.docs.forEach(d=>{ if(d.status!=='Received') items.push(d.name); });
+  if(!c.loSign) items.push('FO Sign');
+  if(!c.bmSign) items.push('BM Sign');
+  if(!c.stamp) items.push('Stamp');
+  return items;
+}
+function caseHasOverdue(c){
+  return c.docs.some(d=>d.status!=='Received' && d.followupDate && daysDiff(d.followupDate)<0);
+}
+function caseAccentClass(c){
+  const st = caseStats(c);
+  if(st.completed) return 'acc-sage';
+  if(caseHasOverdue(c)) return 'acc-red';
+  if(st.received>0 || c.loSign || c.bmSign || c.stamp) return 'acc-gold';
+  return 'acc-navy';
+}
+function caseStampInfo(c){
+  const st = caseStats(c);
+  if(st.completed) return {cls:'complete', label:'Complete'};
+  if(caseHasOverdue(c)) return {cls:'overdue', label:'Overdue'};
+  if(st.received>0 || c.loSign || c.bmSign || c.stamp) return {cls:'progress', label:'In Progress'};
+  return {cls:'new', label:'New'};
+}
+
+function nextCaseSeqId(){
+  const n = DATA.nextCaseSeq || 1;
+  DATA.nextCaseSeq = n+1;
+  return n;
+}
+
+async function createCaseFromSheet(){
+  const name = document.getElementById('nf-name').value.trim();
+  const caseId = document.getElementById('nf-caseid').value.trim();
+  const loanType = document.getElementById('nf-loantype').value;
+  const sanctionDate = document.getElementById('nf-sanctiondate').value;
+  const loanAmount = document.getElementById('nf-amount').value.trim();
+  const branch = document.getElementById('nf-branch').value.trim();
+  const remark = document.getElementById('nf-remark').value.trim();
+
+  if(!name || !caseId){ showToast('Please fill Name and Case ID'); return; }
+  if(DATA.cases.some(c=>c.caseId.toLowerCase()===caseId.toLowerCase())){
+    showToast('A case with this ID already exists'); return;
+  }
+  if(!DOC_PICKER_SELECTED.length){ showToast('Choose at least one pending document'); return; }
+
+  const docs = DOC_PICKER_SELECTED.map(dn=>({
+    id: uid('doc'), name: dn, status: 'Pending', followupDate: '', receivedDate: '', note: ''
+  }));
+
+  const newCase = {
+    id: uid('case'),
+    caseId, customerName: name, loanType, branch, sanctionDate, loanAmount,
+    status: 'New',
+    createdAt: new Date().toISOString(),
+    docs,
+    loSign:false, loSignDate:'',
+    bmSign:false, bmSignDate:'',
+    stamp:false, stampDate:'',
+    remark,
+    contacts: []
+  };
+
+  DATA.cases.push(newCase);
+
+  if(PENDING_LEAD_CONVERSION){
+    const lead = DATA.leads.find(l=>l.id===PENDING_LEAD_CONVERSION.id);
+    if(lead){ lead.converted = true; lead.status = 'converted'; lead.convertedCaseId = newCase.id; }
+    PENDING_LEAD_CONVERSION = null;
+  }
+
+  await saveData();
+  closeSheet('sheetNewCase');
+  ['nf-name','nf-caseid','nf-sanctiondate','nf-amount','nf-branch','nf-remark'].forEach(id=>document.getElementById(id).value='');
+  DOC_PICKER_SELECTED = [];
+  updateDocsSummary();
+  showToast('Case created: '+caseId);
+  refreshReminderDot();
+  if(CURRENT_VIEW==='cases') renderCasesList();
+  if(CURRENT_VIEW==='home') renderHome();
+}
+
+function openNewCaseSheet(){
+  refreshLoanTypeSelect('nf-loantype');
+  DOC_PICKER_SELECTED = [];
+  updateDocsSummary();
+  openSheet('sheetNewCase');
+}
+
+/* =========================================================
+   DOCUMENT PICKER — growable, per-loan-type checklist.
+   Opens scoped to whatever loan type is currently selected in
+   the New Case sheet. Checking/unchecking only affects this
+   case; adding a new document type permanently extends that
+   loan type's master list so it shows up as a checkbox for
+   every future case of the same type too.
+========================================================= */
+let DOC_PICKER_SELECTED = [];   // doc names currently ticked for the case being created
+function openDocPickerModal(){
+  const loanType = document.getElementById('nf-loantype').value || DATA.loanTypes[0];
+  document.getElementById('docPickerLoanType').textContent = loanType;
+  // First time this sheet opens for a fresh case, default every doc in
+  // the type's list to selected (matches "these are the docs needed").
+  if(!DOC_PICKER_SELECTED.length){
+    DOC_PICKER_SELECTED = [...getDocListForLoanType(loanType)];
+  }
+  renderDocPickerList();
+  openSheet('sheetDocPicker');
+}
+function closeDocPickerModal(){ closeSheet('sheetDocPicker'); }
+function renderDocPickerList(){
+  const loanType = document.getElementById('nf-loantype').value || DATA.loanTypes[0];
+  const master = getDocListForLoanType(loanType);
+  const wrap = document.getElementById('docPickerList');
+  wrap.innerHTML = master.map(name=>{
+    const checked = DOC_PICKER_SELECTED.includes(name);
+    return `
+      <div class="docpick-row ${checked?'checked':''}" onclick="toggleDocPickerItem('${escapeHtml(name).replace(/'/g,"\\'")}')">
+        <div class="check ${checked?'checked':''}">${checked?'✓':''}</div>
+        <div class="dp-name">${escapeHtml(name)}</div>
+      </div>`;
+  }).join('');
+  document.getElementById('docPickerCount').textContent = DOC_PICKER_SELECTED.length;
+}
+function toggleDocPickerItem(name){
+  const i = DOC_PICKER_SELECTED.indexOf(name);
+  if(i>-1) DOC_PICKER_SELECTED.splice(i,1);
+  else DOC_PICKER_SELECTED.push(name);
+  renderDocPickerList();
+}
+async function addDocPickerType(){
+  const input = document.getElementById('docPickerNewName');
+  const name = input.value.trim();
+  if(!name){ showToast('Type a document name first'); return; }
+  const loanType = document.getElementById('nf-loantype').value || DATA.loanTypes[0];
+  const master = getDocListForLoanType(loanType);
+  if(master.some(m=>m.toLowerCase()===name.toLowerCase())){
+    showToast('Already in the list');
+    input.value='';
+    return;
+  }
+  // Permanently add to this loan type's checklist so every future case
+  // of the same type shows it too — then tick it for the current case.
+  master.push(name);
+  DOC_PICKER_SELECTED.push(name);
+  await saveData();
+  input.value = '';
+  renderDocPickerList();
+  showToast(`Added "${name}" to ${loanType} checklist`);
+}
+function updateDocsSummary(){
+  const el = document.getElementById('nf-docs-summary');
+  document.getElementById('nf-docs-selected').value = JSON.stringify(DOC_PICKER_SELECTED);
+  el.textContent = DOC_PICKER_SELECTED.length
+    ? `📋 ${DOC_PICKER_SELECTED.length} document${DOC_PICKER_SELECTED.length===1?'':'s'} selected`
+    : '📋 Choose Pending Docs';
+}
+function confirmDocPicker(){
+  updateDocsSummary();
+  closeDocPickerModal();
+}
+// Re-scope the picker's selection whenever the loan type changes, so
+// switching types before confirming shows that type's own checklist
+// rather than silently carrying over the previous type's picks.
+function onCaseLoanTypeChange(){
+  DOC_PICKER_SELECTED = [];
+  updateDocsSummary();
+}
+
+async function updateCaseField(caseId, field, value){
+  const c = DATA.cases.find(x=>x.id===caseId);
+  if(!c) return;
+  c[field] = value;
+  await saveData();
+}
+async function toggleDoc(caseId, docId, newStatus){
+  const c = DATA.cases.find(x=>x.id===caseId);
+  if(!c) return;
+  const d = c.docs.find(x=>x.id===docId);
+  if(!d) return;
+  d.status = newStatus;
+  if(newStatus==='Received'){ d.receivedDate = todayISO(); }
+  else { d.receivedDate=''; }
+  await saveData();
+  renderCaseDetail(caseId);
+  refreshReminderDot();
+}
+async function setDocFollowup(caseId, docId, dateVal){
+  const c = DATA.cases.find(x=>x.id===caseId);
+  if(!c) return;
+  const d = c.docs.find(x=>x.id===docId);
+  if(!d) return;
+  d.followupDate = dateVal;
+  await saveData();
+  refreshReminderDot();
+}
+async function toggleSignFlag(caseId, field, dateField){
+  const c = DATA.cases.find(x=>x.id===caseId);
+  if(!c) return;
+  c[field] = !c[field];
+  c[dateField] = c[field] ? todayISO() : '';
+  await saveData();
+  renderCaseDetail(caseId);
+}
+async function deleteCase(caseId){
+  if(!confirm('Delete this case permanently? This cannot be undone.')) return;
+  DATA.cases = DATA.cases.filter(c=>c.id!==caseId);
+  await saveData();
+  showToast('Case deleted');
+  showView('cases');
+}
+
+function refreshLoanTypeSelect(selectId){
+  const sel = document.getElementById(selectId);
+  if(!sel) return;
+  const current = sel.value;
+  sel.innerHTML = DATA.loanTypes.map(lt=>`<option value="${escapeHtml(lt)}">${escapeHtml(lt)}</option>`).join('');
+  if(current) sel.value = current;
+}
+
+// Returns the growable document checklist for a loan type — creates it
+// (seeded from the generic default) the first time that type is used,
+// so every loan type gets its own independent, permanently-remembered list.
+function getDocListForLoanType(loanType){
+  if(!DATA.docMasterByLoanType) DATA.docMasterByLoanType = {};
+  if(!DATA.docMasterByLoanType[loanType]){
+    DATA.docMasterByLoanType[loanType] = [...DATA.docMaster];
+  }
+  return DATA.docMasterByLoanType[loanType];
+}
+
+/* ---------- Case list ---------- */
+let CASE_FILTER = 'all';
+function setCaseFilter(f){
+  CASE_FILTER = f;
+  document.querySelectorAll('#caseFilterChips .chip').forEach(c=>c.classList.toggle('active', c.dataset.f===f));
+  showView('cases');
+}
+
+function renderCasesList(){
+  const q = (document.getElementById('caseSearch').value||'').toLowerCase().trim();
+  let list = [...DATA.cases];
+
+  if(q){
+    list = list.filter(c=>
+      c.customerName.toLowerCase().includes(q) ||
+      c.caseId.toLowerCase().includes(q) ||
+      (c.branch||'').toLowerCase().includes(q)
+    );
+  }
+  if(CASE_FILTER==='pending') list = list.filter(c=>!caseStats(c).completed);
+  if(CASE_FILTER==='overdue') list = list.filter(c=>caseHasOverdue(c));
+  if(CASE_FILTER==='complete') list = list.filter(c=>caseStats(c).completed);
+
+  list.sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+
+  const wrap = document.getElementById('casesList');
+  if(!list.length){
+    wrap.innerHTML = `<div class="empty"><div class="icon">📁</div><div class="title">No cases found</div><div class="desc">Tap + to add a new loan case</div></div>`;
+    return;
+  }
+  wrap.innerHTML = list.map(c=>{
+    const st = caseStats(c);
+    const stamp = caseStampInfo(c);
+    const pct = st.total ? Math.round((st.received/st.total)*100) : (st.completed?100:0);
+    return `
+      <div class="list-card ${caseAccentClass(c)}" onclick="openCaseDetail('${c.id}')">
+        <div class="list-card-body">
+          <div class="lc-top">
+            <div>
+              <p class="lc-name">${escapeHtml(c.customerName)}</p>
+              <div class="lc-id mono">${escapeHtml(c.caseId)}</div>
+            </div>
+            <span class="stamp ${stamp.cls}">${stamp.label}</span>
+          </div>
+          <div class="lc-meta">
+            <span class="pill navy">${escapeHtml(c.loanType||'—')}</span>
+            ${c.loanAmount ? `<span class="pill gold">${fmtAmount(c.loanAmount)}</span>` : ''}
+          </div>
+          <div class="lc-progress-track"><div class="lc-progress-fill" style="width:${pct}%;"></div></div>
+          <div class="lc-foot">
+            <span>${st.received}/${st.total} docs received · <b style="color:var(--navy);">${pct}%</b></span>
+            <span>${fmtDate(c.sanctionDate)}</span>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+/* ---------- Case detail ---------- */
+function openCaseDetail(caseId){
+  CURRENT_CASE_ID = caseId;
+  showView('casedetail');
+  renderCaseDetail(caseId);
+}
+
+function renderCaseDetail(caseId){
+  const c = DATA.cases.find(x=>x.id===caseId);
+  const body = document.getElementById('caseDetailBody');
+  if(!c){ body.innerHTML = `<div class="empty"><div class="title">Case not found</div></div>`; return; }
+
+  const st = caseStats(c);
+  const stamp = caseStampInfo(c);
+
+  const docsHtml = c.docs.map(d=>`
+    <div class="doc-row">
+      <div class="dr-name">
+        ${escapeHtml(d.name)}
+        ${d.status==='Pending' ? `<input type="date" value="${d.followupDate||''}" onchange="setDocFollowup('${c.id}','${d.id}',this.value)" style="display:block;margin-top:5px;font-size:11px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;color:var(--ink-soft);">` : ''}
+      </div>
+      <div class="doc-toggle">
+        <button class="${d.status==='Pending'?'on pending':''}" onclick="toggleDoc('${c.id}','${d.id}','Pending')">Pending</button>
+        <button class="${d.status==='Received'?'on received':''}" onclick="toggleDoc('${c.id}','${d.id}','Received')">Got</button>
+      </div>
+    </div>`).join('');
+
+  body.innerHTML = `
+    <button class="btn ghost sm" style="padding-left:0;margin-bottom:8px;" onclick="showView('cases')">← Back to Cases</button>
+
+    <div class="detail-hero">
+      <div class="dh-name">${escapeHtml(c.customerName)}</div>
+      <div class="dh-id mono">${escapeHtml(c.caseId)} &nbsp;·&nbsp; <span class="stamp ${stamp.cls}" style="border-color:currentColor;color:#fff;background:rgba(255,255,255,.12);">${stamp.label}</span></div>
+      <div class="dh-grid">
+        <div><div class="k">Loan Type</div><div class="v">${escapeHtml(c.loanType||'—')}</div></div>
+        <div><div class="k">Amount</div><div class="v">${fmtAmount(c.loanAmount)}</div></div>
+        <div><div class="k">Sanction Date</div><div class="v">${fmtDate(c.sanctionDate)}</div></div>
+        <div><div class="k">Branch</div><div class="v">${escapeHtml(c.branch||'—')}</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>📄 Documents (${st.received}/${st.total} · ${st.total ? Math.round((st.received/st.total)*100) : (st.completed?100:0)}%)</h3>
+      ${docsHtml || '<p class="small muted">No document checklist configured.</p>'}
+    </div>
+
+    <div class="card">
+      <h3>🖋️ File-level Sign / Stamp</h3>
+      <div class="btn-row" style="margin-bottom:8px;">
+        <button class="btn ${c.loSign?'':'outline'} sm" style="flex:1;background:${c.loSign?'var(--sage)':''}" onclick="toggleSignFlag('${c.id}','loSign','loSignDate')">${c.loSign?'✅':'⬜'} FO Sign</button>
+        <button class="btn ${c.bmSign?'':'outline'} sm" style="flex:1;background:${c.bmSign?'var(--sage)':''}" onclick="toggleSignFlag('${c.id}','bmSign','bmSignDate')">${c.bmSign?'✅':'⬜'} BM Sign</button>
+      </div>
+      <button class="btn ${c.stamp?'':'outline'} sm" style="width:100%;background:${c.stamp?'var(--sage)':''}" onclick="toggleSignFlag('${c.id}','stamp','stampDate')">${c.stamp?'✅':'⬜'} Stamp</button>
+    </div>
+
+    <div class="card">
+      <h3>📝 Remarks</h3>
+      <textarea onchange="updateCaseField('${c.id}','remark',this.value)" placeholder="Add a note...">${escapeHtml(c.remark||'')}</textarea>
+    </div>
+
+    <button class="btn danger sm" style="width:100%;margin-top:6px;" onclick="deleteCase('${c.id}')">🗑️ Delete Case</button>
+  `;
+}
+
+/* =========================================================
+   TASKS — Daily Tasks + Scheduled Planner Tasks
+========================================================= */
+/* =========================================================
+   TASKS — unified. One list (DATA.tasks), one Add sheet.
+   The date you pick decides which bucket a task shows in:
+   today's date -> Today (daily-style), any other date ->
+   Scheduled. Priority (High/Medium/Low) always controls sort
+   order within a bucket, so the most urgent item is always on top.
+========================================================= */
+const PRIORITY_ORDER = { High:0, Medium:1, Low:2 };
+// A task is "Daily-style" only if it was created FOR the day it's due
+// (endDate === createdDate) — that's what makes it carry forward day to
+// day until done, as opposed to a Scheduled task with its own due date.
+function isDailyStyle(t){ return t.endDate === t.createdDate; }
+let TASK_TAB = 'today';
+
+function setTaskTab(tf){
+  TASK_TAB = tf;
+  document.querySelectorAll('#view-tasks .chip').forEach(c=>c.classList.toggle('active', c.dataset.tf===tf));
+  renderTasksTab();
+}
+function renderTasksTab(){
+  const today = todayISO();
+  const wrap = document.getElementById('tasksList');
+  if(!wrap) return;
+
+  // A task is "Daily-style" only if it was created FOR today (endDate
+  // equals the date it was created on) — that's what makes it carry
+  // forward day to day until done. A task created today but dated for
+  // some other day is Scheduled, even though createdDate is today too.
+
+  let list;
+  if(TASK_TAB==='today'){
+    // Today = anything actionable right now: overdue/due-today scheduled
+    // items, plus daily-style tasks that are still open (today's or
+    // carried forward from an earlier day).
+    list = DATA.tasks.filter(t=>!t.completed && (isDailyStyle(t) || t.endDate<=today));
+  } else if(TASK_TAB==='scheduled'){
+    list = DATA.tasks.filter(t=>!t.completed && !isDailyStyle(t) && t.endDate>today);
+  } else {
+    list = DATA.tasks.filter(t=>t.completed);
+  }
+
+  // Priority first (High -> Medium -> Low), then soonest due date within
+  // the same priority, so the most urgent item is always on top.
+  list = [...list].sort((a,b)=>{
+    if(TASK_TAB==='done'){
+      return (b.completedAt||'').localeCompare(a.completedAt||'');
+    }
+    const pa = PRIORITY_ORDER[a.priority]??1, pb = PRIORITY_ORDER[b.priority]??1;
+    if(pa!==pb) return pa-pb;
+    return (a.endDate||'').localeCompare(b.endDate||'');
+  });
+
+  document.getElementById('taskCountToday').textContent =
+    DATA.tasks.filter(t=>!t.completed && (isDailyStyle(t) || t.endDate<=today)).length || '';
+  document.getElementById('taskCountScheduled').textContent =
+    DATA.tasks.filter(t=>!t.completed && !isDailyStyle(t) && t.endDate>today).length || '';
+
+  if(!list.length){
+    const msg = TASK_TAB==='done'
+      ? {icon:'✅', title:'Nothing completed yet', desc:'Finished tasks will show up here'}
+      : TASK_TAB==='scheduled'
+        ? {icon:'🗓️', title:'No scheduled tasks', desc:'Tap ➕ and pick a future date to plan ahead'}
+        : {icon:'📝', title:'Nothing due today', desc:'Tap ➕ to add a task — pick today\'s date for it to land here'};
+    wrap.innerHTML = `<div class="empty"><div class="icon">${msg.icon}</div><div class="title">${msg.title}</div><div class="desc">${msg.desc}</div></div>`;
+    return;
+  }
+
+  wrap.innerHTML = list.map(t=>{
+    const c = t.caseId ? DATA.cases.find(x=>x.id===t.caseId) : null;
+    const dd = daysDiff(t.endDate);
+    const isCarriedDaily = !t.completed && isDailyStyle(t) && t.endDate<today;
+    let dateTag = '';
+    if(t.completed) dateTag = `<span class="pill sage">Done ${fmtDate((t.completedAt||'').slice(0,10))}</span>`;
+    else if(isCarriedDaily) dateTag = `<span class="pill red">Carried ${Math.abs(daysDiff(t.endDate))}d</span>`;
+    else if(dd<0) dateTag = `<span class="pill red">Overdue ${Math.abs(dd)}d</span>`;
+    else if(dd===0) dateTag = `<span class="pill gold">Today</span>`;
+    else dateTag = `<span class="pill navy">${fmtDate(t.endDate)}</span>`;
+    return `
+      <div class="task-row pri-${t.priority}">
+        <div class="check ${t.completed?'checked':''}" onclick="toggleTask('${t.id}',${!t.completed})">${t.completed?'✓':''}</div>
+        <div class="tr-text">
+          <div class="${t.completed?'strike':''}"><span class="pri-dot ${t.priority}"></span>${escapeHtml(t.name)}</div>
+          <div class="tr-meta">${dateTag} ${c ? '· '+escapeHtml(c.customerName) : ''} · <span class="pill pri-${t.priority}" style="padding:2px 7px;">${t.priority}</span></div>
+          ${!t.completed ? `
+          <div class="task-progress-row">
+            <input type="range" class="task-progress-slider" min="0" max="100" step="5" value="${t.progress||0}"
+              oninput="this.nextElementSibling.textContent=this.value+'%'"
+              onchange="setTaskProgress('${t.id}', this.value)">
+            <span class="task-progress-pct">${t.progress||0}%</span>
+          </div>` : ''}
+        </div>
+        <button class="btn ghost sm" onclick="editTaskSheet('${t.id}')" style="padding:4px 7px;">✎</button>
+        <button class="btn ghost sm" onclick="deleteTask('${t.id}')" style="padding:4px 7px;">✕</button>
+      </div>`;
+  }).join('');
+}
+
+function openTaskSheet(){
+  const sel = document.getElementById('tk-case');
+  sel.innerHTML = '<option value="">None</option>' + DATA.cases.map(c=>`<option value="${c.id}">${escapeHtml(c.customerName)} (${escapeHtml(c.caseId)})</option>`).join('');
+  document.getElementById('tk-editid').value = '';
+  document.getElementById('tk-name').value = '';
+  document.getElementById('tk-date').value = todayISO();
+  document.getElementById('tk-priority').value = 'Medium';
+  document.getElementById('tk-case').value = '';
+  document.getElementById('taskSheetTitle').textContent = '✅ Add Task';
+  document.getElementById('taskSheetSaveBtn').textContent = 'Save Task';
+  updateTaskDateHint();
+  openSheet('sheetTask');
+}
+function editTaskSheet(id){
+  const t = DATA.tasks.find(x=>x.id===id);
+  if(!t) return;
+  const sel = document.getElementById('tk-case');
+  sel.innerHTML = '<option value="">None</option>' + DATA.cases.map(c=>`<option value="${c.id}">${escapeHtml(c.customerName)} (${escapeHtml(c.caseId)})</option>`).join('');
+  document.getElementById('tk-editid').value = t.id;
+  document.getElementById('tk-name').value = t.name;
+  document.getElementById('tk-date').value = t.endDate;
+  document.getElementById('tk-priority').value = t.priority;
+  document.getElementById('tk-case').value = t.caseId || '';
+  document.getElementById('taskSheetTitle').textContent = '✎ Edit Task';
+  document.getElementById('taskSheetSaveBtn').textContent = 'Save Changes';
+  updateTaskDateHint();
+  openSheet('sheetTask');
+}
+function updateTaskDateHint(){
+  const date = document.getElementById('tk-date').value;
+  const hint = document.getElementById('tk-date-hint');
+  if(!date){ hint.textContent = ''; return; }
+  hint.textContent = date===todayISO()
+    ? '📝 Today\'s date — this will show up under Today.'
+    : '🗓️ Future/past date — this will show up under Scheduled.';
+}
+async function saveTaskFromSheet(){
+  const editId = document.getElementById('tk-editid').value;
+  const name = document.getElementById('tk-name').value.trim();
+  const endDate = document.getElementById('tk-date').value;
+  const priority = document.getElementById('tk-priority').value;
+  const caseId = document.getElementById('tk-case').value;
+  if(!name || !endDate){ showToast('Please fill task name and date'); return; }
+
+  if(editId){
+    const t = DATA.tasks.find(x=>x.id===editId);
+    if(t) Object.assign(t, { name, endDate, priority, caseId: caseId||null });
+    showToast('Task updated');
+  } else {
+    DATA.tasks.push({
+      id: uid('task'), name, endDate, priority, caseId: caseId||null,
+      createdDate: todayISO(), completed:false, completedAt:'', createdAt: new Date().toISOString(), progress: 0
+    });
+    showToast('Task added');
+  }
+  await saveData();
+  closeSheet('sheetTask');
+  renderTasksTab();
+  refreshReminderDot();
+  if(CURRENT_VIEW==='home') renderHome();
+}
+async function toggleTask(id, checked){
+  const t = DATA.tasks.find(x=>x.id===id); if(!t) return;
+  t.completed = checked;
+  t.completedAt = checked ? new Date().toISOString() : '';
+  t.progress = checked ? 100 : (t.progress || 0);
+  await saveData();
+  renderTasksTab();
+  refreshReminderDot();
+  if(CURRENT_VIEW==='home') renderHome();
+}
+async function setTaskProgress(id, pct){
+  const t = DATA.tasks.find(x=>x.id===id); if(!t) return;
+  pct = Math.max(0, Math.min(100, Math.round(pct/5)*5));
+  t.progress = pct;
+  if(pct===100 && !t.completed){ t.completed = true; t.completedAt = new Date().toISOString(); }
+  else if(pct<100 && t.completed){ t.completed = false; t.completedAt = ''; }
+  await saveData();
+  renderTasksTab();
+  refreshReminderDot();
+  if(CURRENT_VIEW==='home') renderHome();
+}
+async function deleteTask(id){
+  DATA.tasks = DATA.tasks.filter(t=>t.id!==id);
+  await saveData();
+  renderTasksTab();
+  refreshReminderDot();
+  if(CURRENT_VIEW==='home') renderHome();
+}
+
+/* =========================================================
+   LEADS
+========================================================= */
+const LEAD_LOAN_TYPES = ['Personal Loan','Pension Loan','Gold Loan','Car Loan','Home Loan','Other Loan'];
+const LEAD_TYPE_ICON = {
+  'Personal Loan':'💳','Pension Loan':'🧓','Gold Loan':'🪙','Car Loan':'🚗','Home Loan':'🏠','Other Loan':'📄'
+};
+let LEAD_FILTER = 'pending';
+function setLeadFilter(f){
+  LEAD_FILTER = f;
+  document.querySelectorAll('#view-leads .chip').forEach(c=>c.classList.toggle('active', c.dataset.lf===f));
+  renderLeadsList();
+}
+function openNewLeadSheet(){
+  const sel = document.getElementById('ld-loantype');
+  sel.innerHTML = LEAD_LOAN_TYPES.map(lt=>`<option value="${escapeHtml(lt)}">${LEAD_TYPE_ICON[lt]} ${escapeHtml(lt)}</option>`).join('');
+  ['ld-name','ld-mobile','ld-followup','ld-remark','ld-editid'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('leadSheetTitle').textContent = '🤝 Add Lead';
+  document.getElementById('leadSheetSaveBtn').textContent = 'Add Lead';
+  openSheet('sheetNewLead');
+}
+function openEditLeadSheet(id){
+  const l = DATA.leads.find(x=>x.id===id);
+  if(!l) return;
+  const sel = document.getElementById('ld-loantype');
+  sel.innerHTML = LEAD_LOAN_TYPES.map(lt=>`<option value="${escapeHtml(lt)}">${LEAD_TYPE_ICON[lt]} ${escapeHtml(lt)}</option>`).join('');
+  document.getElementById('ld-editid').value = l.id;
+  document.getElementById('ld-name').value = l.name || '';
+  document.getElementById('ld-mobile').value = l.mobile || '';
+  document.getElementById('ld-loantype').value = l.loanType || LEAD_LOAN_TYPES[0];
+  document.getElementById('ld-followup').value = l.followupDate || '';
+  document.getElementById('ld-remark').value = l.remark || '';
+  document.getElementById('leadSheetTitle').textContent = '🤝 Edit Lead';
+  document.getElementById('leadSheetSaveBtn').textContent = 'Save Changes';
+  openSheet('sheetNewLead');
+}
+async function createLeadFromSheet(){
+  const editId = document.getElementById('ld-editid').value;
+  const name = document.getElementById('ld-name').value.trim();
+  const mobile = document.getElementById('ld-mobile').value.trim();
+  const loanType = document.getElementById('ld-loantype').value;
+  const followupDate = document.getElementById('ld-followup').value;
+  const remark = document.getElementById('ld-remark').value.trim();
+  if(!name || !mobile){ showToast('Please fill Name and Mobile'); return; }
+
+  if(editId){
+    const l = DATA.leads.find(x=>x.id===editId);
+    if(l) Object.assign(l, {name, mobile, loanType, followupDate, remark});
+    await saveData();
+    closeSheet('sheetNewLead');
+    showToast('Lead updated');
+  } else {
+    DATA.leads.push({
+      id: uid('lead'), name, mobile, loanType, followupDate, remark,
+      createdAt: new Date().toISOString(), converted:false, convertedCaseId:'',
+      status:'pending', notEligibleReason:''
+    });
+    await saveData();
+    closeSheet('sheetNewLead');
+    showToast('Lead added: '+name);
+  }
+  renderLeadsList();
+}
+async function deleteLead(id){
+  if(!confirm('Remove this lead?')) return;
+  DATA.leads = DATA.leads.filter(l=>l.id!==id);
+  await saveData();
+  renderLeadsList();
+  showToast('Lead removed');
+}
+function openNotEligibleSheet(id){
+  document.getElementById('ne-leadid').value = id;
+  document.getElementById('ne-reason').value = '';
+  openSheet('sheetNotEligible');
+}
+async function confirmNotEligible(){
+  const id = document.getElementById('ne-leadid').value;
+  const reason = document.getElementById('ne-reason').value.trim();
+  if(!reason){ showToast('Please add a reason'); return; }
+  const l = DATA.leads.find(x=>x.id===id);
+  if(!l) return;
+  l.status = 'not_eligible';
+  l.converted = false;
+  l.notEligibleReason = reason;
+  await saveData();
+  closeSheet('sheetNotEligible');
+  renderLeadsList();
+  showToast('Marked Not Eligible');
+}
+async function reopenLead(id){
+  const l = DATA.leads.find(x=>x.id===id);
+  if(!l) return;
+  l.status = 'pending';
+  l.converted = false;
+  l.notEligibleReason = '';
+  await saveData();
+  renderLeadsList();
+  showToast('Lead reopened as Pending');
+}
+async function markLeadConverted(id){
+  const l = DATA.leads.find(x=>x.id===id);
+  if(!l) return;
+  l.status = 'converted';
+  l.converted = true;
+  await saveData();
+  renderLeadsList();
+  showToast('Marked as Converted');
+}
+function convertLeadToCase(id){
+  const lead = DATA.leads.find(l=>l.id===id);
+  if(!lead) return;
+  PENDING_LEAD_CONVERSION = lead;
+  refreshLoanTypeSelect('nf-loantype');
+  document.getElementById('nf-name').value = lead.name;
+  if(lead.loanType) document.getElementById('nf-loantype').value = lead.loanType;
+  if(lead.remark) document.getElementById('nf-remark').value = 'From lead: '+lead.remark;
+  DOC_PICKER_SELECTED = [];   // re-scope to whichever loan type was just set above
+  updateDocsSummary();
+  openSheet('sheetNewCase');
+  showToast('Details filled — enter Case ID and Create');
+}
+function renderLeadsList(){
+  const q = (document.getElementById('leadSearch').value||'').toLowerCase().trim();
+  let list = [...DATA.leads];
+  if(q) list = list.filter(l=>
+    (l.name||'').toLowerCase().includes(q) ||
+    (l.mobile||'').toLowerCase().includes(q) ||
+    (l.loanType||'').toLowerCase().includes(q)
+  );
+  if(LEAD_FILTER==='pending') list = list.filter(l=>l.status==='pending');
+  if(LEAD_FILTER==='converted') list = list.filter(l=>l.status==='converted');
+  if(LEAD_FILTER==='noteligible') list = list.filter(l=>l.status==='not_eligible');
+
+  list.sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+
+  const wrap = document.getElementById('leadsList');
+  if(!list.length){
+    wrap.innerHTML = `<div class="empty"><div class="icon">🤝</div><div class="title">No leads found</div><div class="desc">Tap + to add a lead</div></div>`;
+    return;
+  }
+  const today = todayISO();
+  const STATUS_PILL = {
+    pending: {cls:'gold', label:'⏳ Pending'},
+    converted: {cls:'sage', label:'✅ Converted'},
+    not_eligible: {cls:'red', label:'🚫 Not Eligible'}
+  };
+  const ACCENT = {pending:'acc-gold', converted:'acc-sage', not_eligible:'acc-red'};
+  wrap.innerHTML = list.map(l=>{
+    const overdue = l.status==='pending' && l.followupDate && l.followupDate < today;
+    const dueToday = l.status==='pending' && l.followupDate === today;
+    const icon = LEAD_TYPE_ICON[l.loanType] || '📄';
+    const sp = STATUS_PILL[l.status] || STATUS_PILL.pending;
+    return `
+    <div class="list-card ${overdue ? 'acc-red' : ACCENT[l.status]}">
+      <div class="list-card-body">
+        <div class="lc-top">
+          <div>
+            <p class="lc-name">${escapeHtml(l.name)}</p>
+            <div class="lc-id mono"><a href="tel:${escapeHtml(l.mobile)}" style="color:inherit;text-decoration:none;">📞 ${escapeHtml(l.mobile)}</a></div>
+          </div>
+          <span class="pill ${sp.cls}">${sp.label}</span>
+        </div>
+        <div class="lc-meta">
+          <span class="pill navy">${icon} ${escapeHtml(l.loanType||'—')}</span>
+          ${l.status==='pending' && l.followupDate ? `<span class="pill ${overdue||dueToday?'red':'navy'}">${overdue?'⛔ Overdue':dueToday?'📌 Today':'Follow-up'} ${fmtDate(l.followupDate)}</span>` : ''}
+        </div>
+        ${l.remark ? `<p class="small muted mt-8" style="margin-bottom:0;max-height:2.8em;overflow:hidden;">${escapeHtml(l.remark)}</p>` : ''}
+        ${l.status==='not_eligible' && l.notEligibleReason ? `<p class="small mt-8" style="margin-bottom:0;color:var(--stamp-red);"><b>Reason:</b> ${escapeHtml(l.notEligibleReason)}</p>` : ''}
+        <div class="lc-foot" style="border-top:none;padding-top:8px;flex-wrap:wrap;">
+          <div class="btn-row" style="flex:1;flex-wrap:wrap;">
+            ${l.status==='pending' ? `
+              ${l.convertedCaseId
+                ? `<button class="btn outline sm" onclick="openCaseDetail('${l.convertedCaseId}')">View Case</button>`
+                : `<button class="btn gold sm" onclick="convertLeadToCase('${l.id}')">Convert to Case</button>`}
+              <button class="btn outline sm" onclick="markLeadConverted('${l.id}')">✅ Converted</button>
+              <button class="btn outline sm" onclick="openNotEligibleSheet('${l.id}')">🚫 Not Eligible</button>
+            ` : `
+              ${l.convertedCaseId ? `<button class="btn outline sm" onclick="openCaseDetail('${l.convertedCaseId}')">View Case</button>` : ''}
+              <button class="btn outline sm" onclick="reopenLead('${l.id}')">↺ Reopen</button>
+            `}
+            <button class="btn outline sm" onclick="openEditLeadSheet('${l.id}')">✎ Edit</button>
+          </div>
+          <button class="btn ghost sm" onclick="deleteLead('${l.id}')">✕</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* =========================================================
+   DEALER PAYOUT (BRANCH LEVEL) — Car Loan dealer payouts
+========================================================= */
+let PAYOUT_FILTER = 'due';
+function setPayoutFilter(f){
+  PAYOUT_FILTER = f;
+  document.querySelectorAll('#view-payouts .chip').forEach(c=>c.classList.toggle('active', c.dataset.pf===f));
+  renderPayoutsList();
+}
+function openNewPayoutSheet(){
+  ['dp-acct','dp-customer','dp-loanamt','dp-dueamt','dp-salesperson','dp-showroom','dp-sanctiondate','dp-dealerletter','dp-editid'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('payoutSheetTitle').textContent = '🚗 Add Dealer Payout';
+  document.getElementById('payoutSheetSaveBtn').textContent = 'Add to Due List';
+  openSheet('sheetNewPayout');
+}
+function openEditPayoutSheet(id){
+  const p = DATA.dealerPayouts.find(x=>x.id===id);
+  if(!p) return;
+  document.getElementById('dp-editid').value = p.id;
+  document.getElementById('dp-showroom').value = p.showroom||'';
+  document.getElementById('dp-customer').value = p.customer||'';
+  document.getElementById('dp-sanctiondate').value = p.sanctionDate||'';
+  document.getElementById('dp-loanamt').value = p.loanAmt||'';
+  document.getElementById('dp-dueamt').value = p.dueAmt||'';
+  document.getElementById('dp-salesperson').value = p.salesPerson||'';
+  document.getElementById('dp-dealerletter').value = p.dealerLetter||'';
+  document.getElementById('dp-acct').value = p.acct||'';
+  document.getElementById('payoutSheetTitle').textContent = '🚗 Edit Dealer Payout';
+  document.getElementById('payoutSheetSaveBtn').textContent = 'Save Changes';
+  openSheet('sheetNewPayout');
+}
+async function createPayoutFromSheet(){
+  const editId = document.getElementById('dp-editid').value;
+  const showroom = document.getElementById('dp-showroom').value.trim();
+  const customer = document.getElementById('dp-customer').value.trim();
+  const sanctionDate = document.getElementById('dp-sanctiondate').value;
+  const loanAmt = document.getElementById('dp-loanamt').value.trim();
+  const dueAmt = document.getElementById('dp-dueamt').value.trim();
+  const salesPerson = document.getElementById('dp-salesperson').value.trim();
+  const dealerLetter = document.getElementById('dp-dealerletter').value.trim();
+  const acct = document.getElementById('dp-acct').value.trim();
+
+  if(!showroom || !customer || !dueAmt || !salesPerson){
+    showToast('Please fill Showroom, Customer, Due Amount and Sales Person');
+    return;
+  }
+
+  if(editId){
+    const p = DATA.dealerPayouts.find(x=>x.id===editId);
+    if(p){
+      Object.assign(p, {showroom, customer, sanctionDate, loanAmt, dueAmt, salesPerson, dealerLetter, acct});
+    }
+    await saveData();
+    closeSheet('sheetNewPayout');
+    showToast('Payout updated');
+  } else {
+    DATA.dealerPayouts.push({
+      id: uid('dp'),
+      showroom, customer, sanctionDate, loanAmt, dueAmt, salesPerson, dealerLetter, acct,
+      status: 'Due',
+      createdAt: new Date().toISOString(),
+      paidAmount: '', paymentDate: '', paidBy: ''
+    });
+    await saveData();
+    closeSheet('sheetNewPayout');
+    showToast('Added to Dealer Payout — Due');
+  }
+  renderPayoutsList();
+  if(CURRENT_VIEW==='home') renderHome();
+}
+
+function openPayPayoutSheet(id){
+  const p = DATA.dealerPayouts.find(x=>x.id===id);
+  if(!p) return;
+  document.getElementById('pp-payoutid').value = id;
+  document.getElementById('pp-amount').value = p.dueAmt || '';
+  document.getElementById('pp-date').value = todayISO();
+  document.getElementById('pp-madeby').value = '';
+  document.getElementById('payPayoutSummary').innerHTML = `
+    <div class="lc-top" style="margin-bottom:6px;">
+      <div>
+        <p class="lc-name" style="font-size:14.5px;">${escapeHtml(p.customer)}</p>
+        <div class="lc-id mono">${escapeHtml(p.showroom||p.acct||'')}</div>
+      </div>
+    </div>
+    <div class="lc-meta">
+      <span class="pill navy">Dealer: ${escapeHtml(p.salesPerson)}</span>
+      <span class="pill gold">Due: ${fmtAmount(p.dueAmt)}</span>
+    </div>`;
+  openSheet('sheetPayPayout');
+}
+async function savePayoutPaymentFromSheet(){
+  const id = document.getElementById('pp-payoutid').value;
+  const amount = document.getElementById('pp-amount').value.trim();
+  const date = document.getElementById('pp-date').value;
+  const madeBy = document.getElementById('pp-madeby').value.trim();
+  if(!amount || !date || !madeBy){ showToast('Please fill Amount, Date and Payment Made By'); return; }
+
+  const p = DATA.dealerPayouts.find(x=>x.id===id);
+  if(!p) return;
+  p.status = 'Paid';
+  p.paidAmount = amount;
+  p.paymentDate = date;
+  p.paidBy = madeBy;
+  await saveData();
+  closeSheet('sheetPayPayout');
+  showToast('Marked as Paid');
+  renderPayoutsList();
+  if(CURRENT_VIEW==='home') renderHome();
+}
+async function deletePayout(id){
+  if(!confirm('Delete this dealer payout record permanently?')) return;
+  DATA.dealerPayouts = DATA.dealerPayouts.filter(p=>p.id!==id);
+  await saveData();
+  renderPayoutsList();
+  showToast('Payout record deleted');
+}
+function renderPayoutsList(){
+  const q = (document.getElementById('payoutSearch').value||'').toLowerCase().trim();
+  let list = [...DATA.dealerPayouts];
+  if(q){
+    list = list.filter(p=>
+      (p.customer||'').toLowerCase().includes(q) ||
+      (p.acct||'').toLowerCase().includes(q) ||
+      (p.showroom||'').toLowerCase().includes(q) ||
+      (p.dealerLetter||'').toLowerCase().includes(q) ||
+      (p.salesPerson||'').toLowerCase().includes(q)
+    );
+  }
+  if(PAYOUT_FILTER==='due') list = list.filter(p=>p.status==='Due');
+  if(PAYOUT_FILTER==='paid') list = list.filter(p=>p.status==='Paid');
+
+  list.sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+
+  const dueAll = DATA.dealerPayouts.filter(p=>p.status==='Due');
+  document.getElementById('payoutDueCount').textContent = dueAll.length;
+  const dueTotal = dueAll.reduce((s,p)=>s + (Number(p.dueAmt)||0), 0);
+  document.getElementById('payoutDueAmt').textContent = fmtAmount(dueTotal);
+
+  const wrap = document.getElementById('payoutsList');
+  if(!list.length){
+    wrap.innerHTML = `<div class="empty"><div class="icon">🚗</div><div class="title">No payouts found</div><div class="desc">Tap + to add a dealer payout</div></div>`;
+    return;
+  }
+  wrap.innerHTML = list.map(p=>`
+    <div class="list-card">
+      <div class="list-card-body">
+        <div class="lc-top">
+          <div>
+            <p class="lc-name">${escapeHtml(p.customer)}</p>
+            <div class="lc-id mono">${escapeHtml(p.showroom || '—')}</div>
+          </div>
+          ${p.status==='Paid' ? `<span class="stamp complete"><span class="dot"></span>Paid</span>` : `<span class="stamp overdue"><span class="dot"></span>Due</span>`}
+        </div>
+        <div class="lc-meta">
+          ${p.salesPerson ? `<span class="pill navy">Dealer: ${escapeHtml(p.salesPerson)}</span>` : ''}
+          ${p.loanAmt ? `<span class="pill navy">Loan: ${fmtAmount(p.loanAmt)}</span>` : ''}
+          <span class="pill gold">Due: ${fmtAmount(p.dueAmt)}</span>
+          ${p.sanctionDate ? `<span class="pill navy">Sanctioned: ${fmtDate(p.sanctionDate)}</span>` : ''}
+          ${p.dealerLetter ? `<span class="pill navy">Letter: ${escapeHtml(p.dealerLetter)}</span>` : ''}
+          ${p.acct ? `<span class="pill navy">A/c: ${escapeHtml(p.acct)}</span>` : ''}
+        </div>
+        ${p.status==='Paid' ? `
+        <div class="lc-meta">
+          <span class="pill sage">Paid: ${fmtAmount(p.paidAmount)}</span>
+          <span class="pill navy">${fmtDate(p.paymentDate)}</span>
+          <span class="pill navy">By: ${escapeHtml(p.paidBy)}</span>
+        </div>` : ''}
+        <div class="lc-foot" style="border-top:none;padding-top:8px;">
+          <div class="btn-row" style="flex:1;">
+            ${p.status==='Due'
+              ? `<button class="btn gold sm" onclick="openPayPayoutSheet('${p.id}')">💸 Mark as Paid</button>`
+              : ''}
+            <button class="btn outline sm" onclick="openEditPayoutSheet('${p.id}')">✎ Edit</button>
+          </div>
+          <button class="btn ghost sm" onclick="deletePayout('${p.id}')">✕</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+/* ---------- Dealer Payout — bulk Excel/CSV upload ----------
+   Expected columns (header names, case-insensitive, order doesn't matter):
+   Customer Name, Sanction Date, Amount / Loan Amount, Showroom (optional),
+   Dealer Sales Person (optional), Due Payout Amt (optional).
+   Rows import as "Due" with whatever columns are present; anything
+   left blank (Showroom, Sales Person, Due Amount...) can be filled in
+   afterwards from the list using the Edit button. */
+let XLSX_LIB_LOADING = null;
+function ensureXlsxLib(){
+  if(window.XLSX) return Promise.resolve();
+  if(XLSX_LIB_LOADING) return XLSX_LIB_LOADING;
+  XLSX_LIB_LOADING = loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+  return XLSX_LIB_LOADING;
+}
+function triggerPayoutExcelUpload(){
+  document.getElementById('payoutExcelInput').click();
+}
+async function handlePayoutExcelUpload(evt){
+  const file = evt.target.files[0];
+  if(!file) return;
+  showToast('Reading file…');
+  try{
+    await ensureXlsxLib();
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, {type:'array', cellDates:true});
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet, {defval:''});
+    if(!rows.length){ showToast('No rows found in that file'); evt.target.value=''; return; }
+
+    const norm = s => String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+    const pick = (row, ...names) => {
+      const keys = Object.keys(row);
+      for(const want of names){
+        const k = keys.find(k=>norm(k)===norm(want));
+        if(k!==undefined && String(row[k]).trim()!=='') return row[k];
+      }
+      return '';
+    };
+    const toISODate = v => {
+      if(!v) return '';
+      if(v instanceof Date && !isNaN(v)) return v.getFullYear()+'-'+String(v.getMonth()+1).padStart(2,'0')+'-'+String(v.getDate()).padStart(2,'0');
+      const d = new Date(v);
+      if(!isNaN(d)) return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+      return '';
+    };
+
+    let added = 0;
+    rows.forEach(row=>{
+      const customer = String(pick(row,'Customer Name','Customer','Name')).trim();
+      if(!customer) return;
+      const sanctionDate = toISODate(pick(row,'Sanction Date','Sanctioned On','Date'));
+      const loanAmt = String(pick(row,'Amount','Loan Amount','Loan Amt')).trim();
+      const dueAmt = String(pick(row,'Due Payout Amt','Due Amount','Payout Amount')).trim();
+      const showroom = String(pick(row,'Showroom','Dealer','Dealer Name')).trim();
+      const salesPerson = String(pick(row,'Dealer Sales Person','Sales Person','Sales Executive')).trim();
+      const acct = String(pick(row,'Car Loan A/c','Loan A/c','Account')).trim();
+      const dealerLetter = String(pick(row,'Dealer Letter','Dealer Letter No')).trim();
+
+      DATA.dealerPayouts.push({
+        id: uid('dp'),
+        showroom, customer, sanctionDate, loanAmt, dueAmt, salesPerson, dealerLetter, acct,
+        status: 'Due',
+        createdAt: new Date().toISOString(),
+        paidAmount: '', paymentDate: '', paidBy: ''
+      });
+      added++;
+    });
+
+    if(!added){ showToast('No usable rows — needs a Customer Name column'); evt.target.value=''; return; }
+    await saveData();
+    showToast(`Imported ${added} payout${added===1?'':'s'} — fill in missing fields via Edit`);
+    renderPayoutsList();
+    if(CURRENT_VIEW==='home') renderHome();
+  }catch(e){
+    console.error(e);
+    showToast('Could not read that file');
+  }
+  evt.target.value = '';
+}
+
+/* =========================================================
+   REMINDERS (bell + sheet)
+========================================================= */
+function getReminderData(){
+  const today = todayISO();
+  // "Overdue" = a scheduled (non-daily-style) task past its due date.
+  const overdueTasks = DATA.tasks.filter(t=>!t.completed && !isDailyStyle(t) && daysDiff(t.endDate)<0);
+  const todayTasks = DATA.tasks.filter(t=>!t.completed && !isDailyStyle(t) && daysDiff(t.endDate)===0);
+  const dailyCarried = DATA.tasks.filter(t=>!t.completed && isDailyStyle(t) && t.endDate<today);
+  const dailyToday = DATA.tasks.filter(t=>!t.completed && isDailyStyle(t) && t.endDate===today);
+  const byPriority = (a,b) => (PRIORITY_ORDER[a.priority]??1) - (PRIORITY_ORDER[b.priority]??1);
+  overdueTasks.sort(byPriority); todayTasks.sort(byPriority);
+
+  let overdueDocs=[], todayDocs=[];
+  DATA.cases.forEach(c=>{
+    c.docs.forEach(d=>{
+      if(d.status!=='Received' && d.followupDate){
+        const dd = daysDiff(d.followupDate);
+        if(dd<0) overdueDocs.push({case:c, doc:d});
+        else if(dd===0) todayDocs.push({case:c, doc:d});
+      }
+    });
+  });
+
+  const overdueLeads = DATA.leads.filter(l=>l.status==='pending' && l.followupDate && daysDiff(l.followupDate)<0);
+  const todayLeads = DATA.leads.filter(l=>l.status==='pending' && l.followupDate && daysDiff(l.followupDate)===0);
+
+  return {overdueTasks, todayTasks, overdueDocs, todayDocs, dailyCarried, dailyToday, overdueLeads, todayLeads};
+}
+function refreshReminderDot(){
+  const r = getReminderData();
+  const count = r.overdueTasks.length + r.todayTasks.length + r.overdueDocs.length + r.todayDocs.length + r.dailyCarried.length + r.dailyToday.length + r.overdueLeads.length + r.todayLeads.length;
+  const dot = document.getElementById('reminderDot');
+  dot.textContent = count>99?'99+':count;
+  dot.classList.toggle('hidden', count===0);
+}
+function openReminders(){
+  const r = getReminderData();
+  const body = document.getElementById('remindersBody');
+  let html = '';
+
+  function block(title, items, render){
+    if(!items.length) return '';
+    return `<div class="section-lbl" style="margin-top:14px;">${title}</div>` + items.map(render).join('');
+  }
+  html += block('⛔ Overdue Documents', r.overdueDocs, ({case:c,doc:d})=>`
+    <div class="reminder-item"><div><div class="ri-name">${escapeHtml(d.name)}</div><div class="ri-sub">${escapeHtml(c.customerName)} · ${escapeHtml(c.caseId)}</div></div><div class="ri-date">${fmtDate(d.followupDate)}</div></div>`);
+  html += block('⛔ Tasks — Carried Forward', r.dailyCarried, t=>`
+    <div class="reminder-item"><div><div class="ri-name"><span class="pri-dot ${t.priority}"></span>${escapeHtml(t.name)}</div><div class="ri-sub">Added ${fmtDate(t.createdDate)}</div></div></div>`);
+  html += block('⛔ Overdue Tasks', r.overdueTasks, t=>`
+    <div class="reminder-item"><div><div class="ri-name"><span class="pri-dot ${t.priority}"></span>${escapeHtml(t.name)}</div><div class="ri-sub">${t.priority} priority</div></div><div class="ri-date">${fmtDate(t.endDate)}</div></div>`);
+  html += block('📅 Due Today — Documents', r.todayDocs, ({case:c,doc:d})=>`
+    <div class="reminder-item"><div><div class="ri-name">${escapeHtml(d.name)}</div><div class="ri-sub">${escapeHtml(c.customerName)} · ${escapeHtml(c.caseId)}</div></div></div>`);
+  html += block('📝 Tasks — Today', r.dailyToday, t=>`
+    <div class="reminder-item"><div><div class="ri-name"><span class="pri-dot ${t.priority}"></span>${escapeHtml(t.name)}</div><div class="ri-sub">${t.priority} priority</div></div></div>`);
+  html += block('📅 Due Today — Scheduled Tasks', r.todayTasks, t=>`
+    <div class="reminder-item"><div><div class="ri-name"><span class="pri-dot ${t.priority}"></span>${escapeHtml(t.name)}</div><div class="ri-sub">${t.priority} priority</div></div></div>`);
+  html += block('⛔ Overdue Lead Follow-ups', r.overdueLeads, l=>`
+    <div class="reminder-item"><div><div class="ri-name">${escapeHtml(l.name)}</div><div class="ri-sub">${escapeHtml(l.mobile)} · ${escapeHtml(l.loanType||'')}</div></div><div class="ri-date">${fmtDate(l.followupDate)}</div></div>`);
+  html += block('📅 Lead Follow-ups — Today', r.todayLeads, l=>`
+    <div class="reminder-item"><div><div class="ri-name">${escapeHtml(l.name)}</div><div class="ri-sub">${escapeHtml(l.mobile)} · ${escapeHtml(l.loanType||'')}</div></div></div>`);
+
+  if(!html){
+    html = `<div class="empty"><div class="icon">✅</div><div class="title">All clear</div><div class="desc">Nothing overdue or due today</div></div>`;
+  }
+  body.innerHTML = html;
+  openSheet('sheetReminders');
+}
+
+/* =========================================================
+   HOME DASHBOARD
+========================================================= */
+function renderHome(){
+  document.getElementById('todayDateLbl').textContent = new Date().toLocaleDateString('en-IN', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+
+  const totalCases = DATA.cases.length;
+  const overdueCount = DATA.cases.filter(caseHasOverdue).length;
+  const completedCount = DATA.cases.filter(c=>caseStats(c).completed).length;
+  const pendingCount = totalCases - completedCount;
+  const today = todayISO();
+  const tasksToday = DATA.tasks.filter(t=>!t.completed && (isDailyStyle(t) || t.endDate<=today)).length;
+  const duePayouts = DATA.dealerPayouts.filter(p=>p.status==='Due');
+  const duePayoutAmt = duePayouts.reduce((s,p)=>s+(Number(p.dueAmt)||0),0);
+
+  document.getElementById('statTotalCases').textContent = totalCases;
+  document.getElementById('statPending').textContent = pendingCount;
+  document.getElementById('statOverdue').textContent = overdueCount;
+  document.getElementById('statTasksToday').textContent = tasksToday;
+  document.getElementById('statCompleted').textContent = completedCount;
+  document.getElementById('statPayoutDue').textContent = fmtAmount(duePayoutAmt);
+  document.getElementById('statPayoutDueLbl').textContent = `Payouts Due (${duePayouts.length})`;
+
+  const r = getReminderData();
+  const attnCount = r.overdueDocs.length + r.dailyCarried.length;
+  const attnBtn = document.getElementById('attnBtn');
+  const attnIcon = document.getElementById('attnBtnIcon');
+  const attnTitle = document.getElementById('attnBtnTitle');
+  const attnMeta = document.getElementById('attnBtnMeta');
+  attnBtn.classList.toggle('hot', attnCount>0);
+  attnIcon.textContent = attnCount>0 ? '⚠️' : '✅';
+  attnTitle.textContent = attnCount>0 ? `Needs Attention (${attnCount})` : 'Needs Attention';
+  attnMeta.textContent = attnCount>0
+    ? `${r.overdueDocs.length} overdue doc${r.overdueDocs.length===1?'':'s'} · ${r.dailyCarried.length} carried task${r.dailyCarried.length===1?'':'s'} — tap to view`
+    : 'Nothing urgent right now';
+
+  const tasksWrap = document.getElementById('homeTasksList');
+  // Everything actionable right now (today's tasks, carried-forward, and
+  // overdue), sorted by priority so the top of the list is what matters most.
+  const todaysAll = [...DATA.tasks.filter(t=>!t.completed && (isDailyStyle(t) || t.endDate<=today))]
+    .sort((a,b)=>(PRIORITY_ORDER[a.priority]??1)-(PRIORITY_ORDER[b.priority]??1));
+  // Completed-today count, for the progress ring — total "in play" today
+  // is open items + whatever's already been ticked off today.
+  const completedToday = DATA.tasks.filter(t=>t.completed && (t.completedAt||'').slice(0,10)===today).length;
+  const totalToday = todaysAll.length + completedToday;
+
+  renderFocusRing(completedToday, totalToday, todaysAll.length);
+
+  if(!todaysAll.length){
+    tasksWrap.innerHTML = totalToday>0
+      ? `<div class="focus-empty"><div class="icon">🎉</div><div class="title">All caught up for today!</div></div>`
+      : `<div class="focus-empty"><div class="icon">📝</div><div class="title">Nothing on deck today</div></div>`;
+  } else {
+    // Group into Overdue / Carried / Today so the most urgent cluster
+    // reads first, matching how modern task apps (Todoist, TickTick)
+    // separate "needs attention now" from "due today".
+    const groups = [
+      {key:'overdue', label:'Overdue', items:[]},
+      {key:'carried', label:'Carried Forward', items:[]},
+      {key:'today', label:'Due Today', items:[]},
+    ];
+    todaysAll.forEach(t=>{
+      const dd = daysDiff(t.endDate);
+      const isCarriedDaily = isDailyStyle(t) && t.endDate<today;
+      if(isCarriedDaily) groups[1].items.push(t);
+      else if(dd<0) groups[0].items.push(t);
+      else groups[2].items.push(t);
+    });
+    tasksWrap.innerHTML = groups.filter(g=>g.items.length).map(g=>`
+      <div class="focus-group-lbl">${g.label} (${g.items.length})</div>
+      ${g.items.map(t=>renderSwipeTaskHtml(t, today)).join('')}
+    `).join('');
+    initSwipeHandlers(tasksWrap);
+  }
+
+  refreshReminderDot();
+}
+
+function renderFocusRing(done, total, remaining){
+  const label = document.getElementById('focusRingLabel');
+  const sub = document.getElementById('focusSub');
+  const ringFg = document.getElementById('focusRingFg');
+  const r = 22, circumference = 2*Math.PI*r;
+  ringFg.style.strokeDasharray = circumference;
+  const pct = total>0 ? done/total : 0;
+  ringFg.style.strokeDashoffset = circumference * (1-pct);
+  ringFg.classList.toggle('all-done', total>0 && remaining===0);
+  label.textContent = total>0 ? `${done}/${total}` : '—';
+  sub.textContent = remaining>0
+    ? `${remaining} task${remaining===1?'':'s'} left today`
+    : total>0 ? 'Everything done — nice work' : 'No tasks for today';
+}
+
+function toggleFocusCard(){
+  document.getElementById('focusCard').classList.toggle('collapsed');
+}
+
+function renderSwipeTaskHtml(t, today){
+  const dd = daysDiff(t.endDate);
+  const isCarriedDaily = isDailyStyle(t) && t.endDate<today;
+  let tag = isCarriedDaily ? `<span class="pill red">Carried ${Math.abs(dd)}d</span>`
+    : dd<0 ? `<span class="pill red">Overdue ${Math.abs(dd)}d</span>`
+    : `<span class="pill gold">Today</span>`;
+  return `
+    <div class="swipe-wrap" data-task-id="${t.id}">
+      <div class="swipe-bg">✓ Complete</div>
+      <div class="swipe-fg pri-${t.priority}">
+        <div class="swipe-check" onclick="animateTaskComplete('${t.id}')"></div>
+        <div style="flex:1;">
+          <div class="swipe-name"><span class="pri-dot ${t.priority}"></span>${escapeHtml(t.name)}</div>
+          <div class="swipe-meta">${tag}<span class="pill pri-${t.priority}" style="padding:2px 7px;">${t.priority}</span></div>
+          <div class="task-progress-row" onclick="event.stopPropagation()">
+            <input type="range" class="task-progress-slider" min="0" max="100" step="5" value="${t.progress||0}"
+              oninput="this.nextElementSibling.textContent=this.value+'%'"
+              onchange="setTaskProgress('${t.id}', this.value)">
+            <span class="task-progress-pct">${t.progress||0}%</span>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// Swipe-right-to-complete, matching the gesture pattern from Todoist/
+// TickTick — drag the row, release past the threshold to check it off,
+// snap back otherwise. Falls back to the tap-target check circle for
+// anyone who prefers tapping.
+function initSwipeHandlers(container){
+  container.querySelectorAll('.swipe-wrap').forEach(wrap=>{
+    const fg = wrap.querySelector('.swipe-fg');
+    const taskId = wrap.dataset.taskId;
+    let startX=0, currentX=0, dragging=false;
+
+    const onStart = (x)=>{ startX=x; currentX=x; dragging=true; fg.classList.add('dragging'); };
+    const onMove = (x)=>{
+      if(!dragging) return;
+      currentX = x;
+      const dx = Math.max(0, currentX-startX);
+      fg.style.transform = `translateX(${Math.min(dx,120)}px)`;
+    };
+    const onEnd = ()=>{
+      if(!dragging) return;
+      dragging = false;
+      fg.classList.remove('dragging');
+      const dx = Math.max(0, currentX-startX);
+      if(dx > 90){ animateTaskComplete(taskId); }
+      else{ fg.style.transform = 'translateX(0)'; }
+    };
+
+    fg.addEventListener('touchstart', e=>{ if(e.target.closest('.task-progress-row')) return; onStart(e.touches[0].clientX); }, {passive:true});
+    fg.addEventListener('touchmove', e=>onMove(e.touches[0].clientX), {passive:true});
+    fg.addEventListener('touchend', onEnd);
+    fg.addEventListener('mousedown', e=>{
+      if(e.target.closest('.task-progress-row')) return;
+      e.preventDefault(); onStart(e.clientX);
+      const mv = ev=>onMove(ev.clientX);
+      const up = ()=>{ onEnd(); document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up); };
+      document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up);
+    });
+  });
+}
+// Plays the slide-away animation, then commits the completion — so the
+// UI gives immediate, satisfying feedback instead of an abrupt re-render.
+function animateTaskComplete(id){
+  const wrap = document.querySelector(`.swipe-wrap[data-task-id="${id}"]`);
+  if(wrap){
+    const fg = wrap.querySelector('.swipe-fg');
+    fg.querySelector('.swipe-check').classList.add('checked');
+    fg.classList.add('done-anim');
+    setTimeout(()=>{ toggleTask(id, true); }, 220);
+  } else {
+    toggleTask(id, true);
+  }
+}
+
+function openAttentionModal(){
+  const r = getReminderData();
+  const body = document.getElementById('attentionModalBody');
+  let html = '';
+  if(r.overdueDocs.length){
+    html += `<div class="section-lbl">⛔ Overdue Documents</div>` + r.overdueDocs.map(({case:c,doc:d})=>`
+      <div class="task-row" onclick="closeSheet('sheetAttention');openCaseDetail('${c.id}')">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--stamp-red);margin-top:6px;flex-shrink:0;"></div>
+        <div class="tr-text"><div>${escapeHtml(d.name)} pending</div><div class="tr-meta">${escapeHtml(c.customerName)} · overdue since ${fmtDate(d.followupDate)}</div></div>
+      </div>`).join('');
+  }
+  if(r.dailyCarried.length){
+    html += `<div class="section-lbl">⛔ Tasks — Carried Forward</div>` + r.dailyCarried.map(t=>`
+      <div class="task-row pri-${t.priority}">
+        <div class="check ${t.completed?'checked':''}" onclick="toggleTask('${t.id}',true)"></div>
+        <div class="tr-text"><div><span class="pri-dot ${t.priority}"></span>${escapeHtml(t.name)}</div><div class="tr-meta">Carried forward from ${fmtDate(t.createdDate)}</div></div>
+      </div>`).join('');
+  }
+  if(!html){
+    html = `<div class="empty" style="padding:24px 16px;"><div class="icon">✅</div><div class="title">Nothing urgent</div><div class="desc">All caught up for now</div></div>`;
+  }
+  body.innerHTML = html;
+  openSheet('sheetAttention');
+}
+
+/* =========================================================
+   MIS REPORTS
+========================================================= */
+const REPORT_DEFS = [
+  {key:'acctpendency', icon:'🧾', label:'Document Pendency', desc:'One row per case, all pending documents'},
+  {key:'overdue', icon:'⚠️', label:'Overdue Items', desc:'Docs past follow-up date'},
+  {key:'completed', icon:'✅', label:'Completed Files', desc:'Fully done: docs + signs + stamp'},
+  {key:'dailytasks', icon:'📝', label:'Tasks Log', desc:"All tasks — daily and scheduled, by priority"},
+  {key:'leadspending', icon:'🤝', label:'Pending Leads', desc:'Leads not yet converted'},
+  {key:'leadsconverted', icon:'✅', label:'Converted Leads', desc:'Leads successfully converted'},
+  {key:'dealerpayout', icon:'🚗', label:'Dealer Payout Report', desc:'Car loan dealer payouts — due & paid'},
+];
+function renderMoreView(){
+  const menu = document.getElementById('reportsMenu');
+  menu.innerHTML = REPORT_DEFS.map(r=>`
+    <div class="task-row" style="margin-bottom:0;border-radius:0;border:none;border-bottom:1px solid var(--line-soft);" onclick="openReport('${r.key}')">
+      <div style="font-size:20px;">${r.icon}</div>
+      <div class="tr-text">
+        <div style="font-weight:600;">${r.label}</div>
+        <div class="tr-meta">${r.desc}</div>
+      </div>
+      <div class="muted">›</div>
+    </div>`).join('');
+  const rows = menu.querySelectorAll('.task-row');
+  if(rows.length) rows[rows.length-1].style.borderBottom='none';
+  updateDbStatusPill();
+  updateNotifStatusUI();
+  renderStorageInfo();
+}
+
+let CURRENT_REPORT = {title:'', headers:[], rows:[], big:false};
+
+/* =========================================================
+   LOCAL NOTIFICATIONS
+   No server/push infra — uses the Notification API directly.
+   Fires while this tab/app is open or backgrounded on the
+   device (not if the browser/app is fully closed). Two things
+   run on a timer once enabled:
+   1. A once-a-day "morning digest" of today's open tasks.
+   2. A periodic sweep for anything newly overdue (tasks, docs,
+      lead follow-ups), so urgent items surface without having
+      to open the app.
+========================================================= */
+const NOTIF_LAST_DIGEST_KEY = 'ltm_notif_last_digest';
+const NOTIF_ENABLED_KEY = 'ltm_notif_enabled';
+let NOTIF_TIMER = null;
+
+function notificationsEnabled(){
+  return localStorage.getItem(NOTIF_ENABLED_KEY) === '1'
+    && typeof Notification !== 'undefined'
+    && Notification.permission === 'granted';
+}
+async function enableNotifications(){
+  if(typeof Notification === 'undefined'){
+    showToast('Notifications are not supported in this browser');
+    return;
+  }
+  const perm = await Notification.requestPermission();
+  if(perm !== 'granted'){
+    showToast('Notifications were not allowed — check your browser/site settings');
+    updateNotifStatusUI();
+    return;
+  }
+  localStorage.setItem(NOTIF_ENABLED_KEY, '1');
+  updateNotifStatusUI();
+  showToast('Notifications enabled');
+  fireLocalNotification('🔔 Notifications on', 'You\'ll get a daily task digest each morning, plus overdue alerts.');
+  startNotificationTimer();
+  runMorningDigestIfDue();
+}
+function disableNotifications(){
+  localStorage.setItem(NOTIF_ENABLED_KEY, '0');
+  if(NOTIF_TIMER){ clearInterval(NOTIF_TIMER); NOTIF_TIMER = null; }
+  updateNotifStatusUI();
+  showToast('Notifications turned off');
+}
+function updateNotifStatusUI(){
+  const pill = document.getElementById('notifStatusPill');
+  const btn = document.getElementById('notifEnableBtn');
+  if(!pill || !btn) return;
+  if(notificationsEnabled()){
+    pill.textContent = 'On';
+    pill.className = 'pill sage';
+    btn.textContent = '🔕 Turn Off Notifications';
+    btn.onclick = disableNotifications;
+  } else {
+    pill.textContent = typeof Notification!=='undefined' && Notification.permission==='denied' ? 'Blocked by browser' : 'Off';
+    pill.className = 'pill navy';
+    btn.textContent = '🔔 Enable Notifications';
+    btn.onclick = enableNotifications;
+  }
+}
+function fireLocalNotification(title, body, tag){
+  if(!notificationsEnabled()) return;
+  try{
+    if(navigator.serviceWorker && navigator.serviceWorker.controller){
+      navigator.serviceWorker.ready.then(reg=>{
+        reg.showNotification(title, { body, tag, icon:'icon-192.png', badge:'icon-192.png' });
+      }).catch(()=>{ try{ new Notification(title, {body, tag, icon:'icon-192.png'}); }catch(e){} });
+    } else {
+      new Notification(title, {body, tag, icon:'icon-192.png'});
+    }
+  }catch(e){ console.error('Notification failed', e); }
+}
+function runMorningDigestIfDue(){
+  if(!notificationsEnabled()) return;
+  const today = todayISO();
+  if(localStorage.getItem(NOTIF_LAST_DIGEST_KEY) === today) return; // already sent today
+  const r = getReminderData();
+  const openToday = r.dailyToday.length + r.dailyCarried.length + r.todayTasks.length + r.overdueTasks.length;
+  if(openToday === 0){
+    localStorage.setItem(NOTIF_LAST_DIGEST_KEY, today);
+    return;
+  }
+  fireLocalNotification(
+    `📝 ${openToday} task${openToday===1?'':'s'} open today`,
+    `${r.overdueTasks.length + r.dailyCarried.length} carried/overdue, ${r.dailyToday.length + r.todayTasks.length} due today. Tap to open Loan Tracker.`,
+    'morning-digest'
+  );
+  localStorage.setItem(NOTIF_LAST_DIGEST_KEY, today);
+}
+function runOverdueSweep(){
+  if(!notificationsEnabled()) return;
+  const r = getReminderData();
+  const urgent = r.overdueTasks.length + r.overdueDocs.length + r.overdueLeads.length;
+  if(urgent === 0) return;
+  fireLocalNotification(
+    '⚠️ Needs attention',
+    `${urgent} item${urgent===1?'':'s'} overdue — ${r.overdueTasks.length} task(s), ${r.overdueDocs.length} document(s), ${r.overdueLeads.length} lead follow-up(s).`,
+    'overdue-sweep'
+  );
+}
+function startNotificationTimer(){
+  if(NOTIF_TIMER) clearInterval(NOTIF_TIMER);
+  if(!notificationsEnabled()) return;
+  // Check every 30 min while the app is open/backgrounded: catches the
+  // morning digest as soon as the date rolls over, and re-flags overdue
+  // items periodically without spamming.
+  NOTIF_TIMER = setInterval(()=>{
+    runMorningDigestIfDue();
+    runOverdueSweep();
+  }, 30*60*1000);
+}
+
+function openReport(key){
+  const def = REPORT_DEFS.find(r=>r.key===key);
+  document.getElementById('reportSheetTitle').textContent = def.label;
+  const body = document.getElementById('reportSheetBody');
+
+  if(key==='acctpendency'){
+    const rows = DATA.cases.map(c=>({c, pending: casePendingItems(c)})).filter(r=>r.pending.length>0);
+    CURRENT_REPORT = {title:def.label, headers:['Case ID','Customer','Sanction Date','Amount','Stage','Pending Items'],
+      rows: rows.map(({c,pending})=>[c.caseId,c.customerName,fmtDate(c.sanctionDate),fmtAmount(c.loanAmount),c.status,pending.join(', ')])};
+    body.innerHTML = rows.length ? rows.map(({c,pending})=>reportCardHtml(c.customerName, c.caseId, [
+      ['Sanction',fmtDate(c.sanctionDate)],['Amount',fmtAmount(c.loanAmount)],['Stage',c.status]
+    ], pending.join(', '))).join('') : emptyReportHtml();
+  }
+  else if(key==='overdue'){
+    let items=[];
+    DATA.cases.forEach(c=>c.docs.forEach(d=>{ if(d.status!=='Received' && d.followupDate && daysDiff(d.followupDate)<0) items.push({c,d}); }));
+    CURRENT_REPORT = {title:def.label, headers:['Case ID','Customer','Document','Follow-up Date','Days Overdue'],
+      rows: items.map(({c,d})=>[c.caseId,c.customerName,d.name,fmtDate(d.followupDate),Math.abs(daysDiff(d.followupDate))])};
+    body.innerHTML = items.length ? items.map(({c,d})=>reportCardHtml(c.customerName, c.caseId, [['Document',d.name],['Follow-up',fmtDate(d.followupDate)]], Math.abs(daysDiff(d.followupDate))+' days overdue')).join('') : emptyReportHtml();
+  }
+  else if(key==='completed'){
+    const rows = DATA.cases.filter(c=>caseStats(c).completed);
+    CURRENT_REPORT = {title:def.label, headers:['Case ID','Customer','Loan Type','Amount','Sanction Date'],
+      rows: rows.map(c=>[c.caseId,c.customerName,c.loanType,fmtAmount(c.loanAmount),fmtDate(c.sanctionDate)])};
+    body.innerHTML = rows.length ? rows.map(c=>reportCardHtml(c.customerName, c.caseId, [['Loan Type',c.loanType],['Amount',fmtAmount(c.loanAmount)],['Sanction',fmtDate(c.sanctionDate)]], '')).join('') : emptyReportHtml();
+  }
+  else if(key==='dailytasks'){
+    const today = todayISO();
+    const rows = [...DATA.tasks].sort((a,b)=>{
+      if(a.completed!==b.completed) return a.completed?1:-1;
+      const pa=PRIORITY_ORDER[a.priority]??1, pb=PRIORITY_ORDER[b.priority]??1;
+      if(pa!==pb) return pa-pb;
+      return (a.endDate||'').localeCompare(b.endDate||'');
+    });
+    const statusOf = t=>{
+      if(t.completed) return 'Completed';
+      if(t.endDate===t.createdDate && t.endDate<today) return 'Carried forward';
+      if(t.endDate<today) return 'Overdue';
+      if(t.endDate===today) return 'Today';
+      return 'Scheduled';
+    };
+    CURRENT_REPORT = {title:def.label, headers:['Task','Priority','Date','Status'],
+      rows: rows.map(t=>[t.name, t.priority, fmtDate(t.endDate), statusOf(t)])};
+    body.innerHTML = rows.length ? rows.map(t=>reportCardHtml(t.name, '', [['Priority',t.priority],['Date',fmtDate(t.endDate)]], (t.completed?'✅ ':t.endDate<today?'⛔ ':'📝 ')+statusOf(t))).join('') : emptyReportHtml();
+  }
+  else if(key==='leadspending' || key==='leadsconverted'){
+    const wantConverted = key==='leadsconverted';
+    const rows = DATA.leads.filter(l=>!!l.converted===wantConverted).sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+    CURRENT_REPORT = {title:def.label, headers:['Loan Type','Name','Mobile','Follow-up Date','Remarks'], big:true,
+      rows: rows.map(l=>[l.loanType||'—', l.name, l.mobile, l.followupDate?fmtDate(l.followupDate):'—', l.remark||'—'])};
+    body.innerHTML = rows.length ? rows.map(l=>reportCardHtml(l.name, l.mobile, [
+      ['Type',l.loanType||'—'],['Follow-up',l.followupDate?fmtDate(l.followupDate):'—']
+    ], l.remark||'')).join('') : emptyReportHtml();
+  }
+  else if(key==='dealerpayout'){
+    const rows = [...DATA.dealerPayouts].sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+    CURRENT_REPORT = {title:def.label, headers:['Showroom','Customer','Sanction Date','Loan Amt','Dealer Sales Person','Due Payout Amt','Dealer Letter','Car Loan A/c','Status','Paid Amt','Payment Date','Payment Made By'],
+      rows: rows.map(p=>[p.showroom,p.customer,fmtDate(p.sanctionDate),fmtAmount(p.loanAmt),p.salesPerson,fmtAmount(p.dueAmt),p.dealerLetter,p.acct,p.status,p.status==='Paid'?fmtAmount(p.paidAmount):'—',p.status==='Paid'?fmtDate(p.paymentDate):'—',p.status==='Paid'?p.paidBy:'—'])};
+    body.innerHTML = rows.length ? rows.map(p=>reportCardHtml(p.customer, p.showroom, [
+      ['Dealer',p.salesPerson],['Loan Amt',fmtAmount(p.loanAmt)],['Due',fmtAmount(p.dueAmt)]
+    ], p.status==='Paid' ? `✅ Paid ${fmtAmount(p.paidAmount)} on ${fmtDate(p.paymentDate)} by ${p.paidBy}` : '⏳ Due')).join('') : emptyReportHtml();
+  }
+
+  openSheet('sheetReport');
+}
+function reportCardHtml(title, subtitle, kvPairs, tag){
+  return `
+    <div class="list-card acc-navy" style="margin-bottom:8px;">
+      <div class="list-card-body" style="padding:11px 13px;">
+        <div class="lc-top" style="margin-bottom:2px;">
+          <div>
+            <p class="lc-name" style="font-size:14px;">${escapeHtml(title)}</p>
+            ${subtitle ? `<div class="lc-id mono">${escapeHtml(subtitle)}</div>` : ''}
+          </div>
+        </div>
+        ${kvPairs.length ? `<div class="lc-meta">${kvPairs.map(([k,v])=>`<span class="pill navy">${escapeHtml(k)}: ${escapeHtml(String(v))}</span>`).join('')}</div>` : ''}
+        ${tag ? `<p class="small" style="margin:8px 0 0;color:var(--stamp-red);font-weight:600;">${escapeHtml(tag)}</p>` : ''}
+      </div>
+    </div>`;
+}
+function emptyReportHtml(){
+  return `<div class="empty"><div class="icon">✅</div><div class="title">Nothing to show</div><div class="desc">No records match this report</div></div>`;
+}
+function exportReportCsv(){
+  if(!CURRENT_REPORT.rows.length){ showToast('No data to export'); return; }
+  const esc = v => `"${String(v==null?'':v).replace(/"/g,'""')}"`;
+  const lines = [CURRENT_REPORT.headers.map(esc).join(',')];
+  CURRENT_REPORT.rows.forEach(r=>lines.push(r.map(esc).join(',')));
+  downloadFile(lines.join('\n'), (CURRENT_REPORT.title||'report').replace(/\s+/g,'_')+'.csv', 'text/csv');
+}
+
+/* ---------- PDF export (tabular, bordered) via jsPDF + AutoTable, loaded on demand ---------- */
+let PDF_LIBS_LOADING = null;
+function loadScript(src){
+  return new Promise((resolve, reject)=>{
+    const s = document.createElement('script');
+    s.src = src; s.onload = resolve; s.onerror = ()=>reject(new Error('Failed to load '+src));
+    document.head.appendChild(s);
+  });
+}
+function ensurePdfLibs(){
+  if(window.jspdf && window.jspdf.jsPDF && document.createElement('canvas').getContext && window.__autoTableReady) return Promise.resolve();
+  if(PDF_LIBS_LOADING) return PDF_LIBS_LOADING;
+  PDF_LIBS_LOADING = (async ()=>{
+    if(!window.jspdf){
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    }
+    if(!window.__autoTableReady){
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
+      window.__autoTableReady = true;
+    }
+  })();
+  return PDF_LIBS_LOADING;
+}
+async function exportReportPdf(){
+  if(!CURRENT_REPORT.rows.length){ showToast('No data to export'); return; }
+  showToast('Preparing PDF…');
+  try{
+    await ensurePdfLibs();
+  }catch(e){
+    console.error(e);
+    showToast('Could not load PDF engine — check internet connection');
+    return;
+  }
+  try{
+    const { jsPDF } = window.jspdf;
+    const isWide = CURRENT_REPORT.headers.length > 6;
+    const big = !!CURRENT_REPORT.big;
+    const doc = new jsPDF({ orientation: isWide ? 'landscape' : 'portrait', unit:'pt', format:'a4' });
+
+    doc.setFontSize(big ? 18 : 14);
+    doc.setFont(undefined,'bold');
+    doc.text(CURRENT_REPORT.title || 'Report', 40, big ? 46 : 40);
+    doc.setFontSize(big ? 11 : 9);
+    doc.setFont(undefined,'normal');
+    doc.setTextColor(110,110,110);
+    doc.text('Generated '+new Date().toLocaleString('en-IN'), 40, big ? 66 : 56);
+
+    doc.autoTable({
+      head: [CURRENT_REPORT.headers],
+      body: CURRENT_REPORT.rows,
+      startY: big ? 84 : 70,
+      theme: 'grid',
+      styles: big
+        ? { fontSize: 13, cellPadding: 10, lineColor: [180,180,180], lineWidth: 0.6, textColor: [20,20,20], valign:'middle' }
+        : { fontSize: 8.5, cellPadding: 5, lineColor: [180,180,180], lineWidth: 0.5, textColor: [30,30,30] },
+      headStyles: big
+        ? { fillColor: [27,42,60], textColor: [255,255,255], fontStyle: 'bold', fontSize: 13.5, lineColor: [180,180,180], lineWidth: 0.6 }
+        : { fillColor: [30,20,70], textColor: [255,255,255], fontStyle: 'bold', lineColor: [180,180,180], lineWidth: 0.5 },
+      alternateRowStyles: { fillColor: [245,245,250] },
+      margin: { left: 30, right: 30 }
+    });
+
+    const filename = (CURRENT_REPORT.title||'report').replace(/\s+/g,'_')+'.pdf';
+    doc.save(filename);
+    showToast('PDF downloaded');
+  }catch(e){
+    console.error(e);
+    showToast('PDF generation failed');
+  }
+}
+
+/* =========================================================
+   REPORT DOWNLOAD HELPER (CSV/PDF export of MIS reports only)
+========================================================= */
+function downloadFile(content, filename, mime){
+  const blob = new Blob([content], {type:mime});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
+}
+
+function renderStorageInfo(){
+  const box = document.getElementById('storageInfoCard');
+  const kb = Math.round(JSON.stringify(DATA).length/1024);
+  box.innerHTML = `
+    <h3 style="margin-bottom:8px;">📊 Data Summary</h3>
+    <div class="lc-meta">
+      <span class="pill navy">${DATA.cases.length} Cases</span>
+      <span class="pill navy">${DATA.leads.length} Leads</span>
+      <span class="pill navy">${DATA.dealerPayouts.length} Payouts</span>
+      <span class="pill navy">${DATA.tasks.length} Tasks</span>
+      <span class="pill navy">~${kb} KB</span>
+    </div>
+    <p class="small muted mt-8" style="margin-bottom:0;">
+      ${DB_CONNECTED ? 'Synced live with your Supabase database — every teammate connected to the same workspace sees the same data.' : 'A local copy is always kept on this device. Connect a database above so your whole branch shares one live dataset.'}
+    </p>
+  `;
+}
+
+/* =========================================================
+   INIT
+========================================================= */
+(async function init(){
+  await loadData();
+  refreshReminderDot();
+  renderHome();
+  initServiceWorkerAutoUpdate();
+  updateNotifStatusUI();
+  if(notificationsEnabled()){
+    startNotificationTimer();
+    runMorningDigestIfDue();
+  }
+})();
+
+/* =========================================================
+   AUTO-UPDATE — force the app onto the newest deployed version
+   with no manual cache-clear needed.
+
+   How it works:
+   1. Register the SW, then poll for a fresh sw.js every time the
+      app opens/comes to the foreground (browsers already check on
+      registration, but they cache that check aggressively — an
+      explicit update() call bypasses that).
+   2. When a new worker finishes installing, it sits "waiting" so
+      it never yanks the JS out from under an open tab. We show a
+      small "Update available" banner instead of forcing a silent
+      reload mid-use.
+   3. Tapping it (or, if nobody's looking, the next natural reload)
+      posts SKIP_WAITING so the new worker activates, then reloads
+      once — via controllerchange — so the page never reloads twice
+      or misses the swap.
+========================================================= */
+function initServiceWorkerAutoUpdate(){
+  if(!('serviceWorker' in navigator) || !location.protocol.startsWith('http')) return;
+
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if(refreshing) return;
+    refreshing = true;
+    window.location.reload();
+  });
+
+  navigator.serviceWorker.register('sw.js').then((reg) => {
+    // A worker was already waiting from a previous visit (e.g. app was
+    // closed before it could take over) — offer the update right away.
+    if(reg.waiting) showUpdateBanner(reg);
+
+    reg.addEventListener('updatefound', () => {
+      const installing = reg.installing;
+      if(!installing) return;
+      installing.addEventListener('statechange', () => {
+        if(installing.state === 'installed' && navigator.serviceWorker.controller){
+          showUpdateBanner(reg);
+        }
+      });
+    });
+
+    // Re-check for a newer sw.js right now, and again whenever the
+    // app is brought back to the foreground — this is what makes an
+    // already-open tab notice an update instead of only checking once.
+    reg.update().catch(()=>{});
+    document.addEventListener('visibilitychange', () => {
+      if(document.visibilityState === 'visible'){
+        reg.update().catch(()=>{});
+        if(notificationsEnabled()){ runMorningDigestIfDue(); runOverdueSweep(); }
+      }
+    });
+  }).catch(()=>{ /* ok if missing, e.g. opened via file:// */ });
+}
+function showUpdateBanner(reg){
+  if(document.getElementById('swUpdateBanner')) return;
+  const bar = document.createElement('div');
+  bar.id = 'swUpdateBanner';
+  bar.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:200;background:var(--navy);color:var(--paper);padding:12px 16px calc(12px + var(--safe-bottom));display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 -2px 10px rgba(0,0,0,.2);font-size:13.5px;';
+  bar.innerHTML = `<span>🔄 A new version is ready.</span><button style="background:var(--gold);color:var(--navy);border:none;border-radius:8px;padding:8px 14px;font-weight:700;font-size:13px;">Update now</button>`;
+  bar.querySelector('button').onclick = () => {
+    bar.querySelector('button').textContent = 'Updating…';
+    if(reg.waiting) reg.waiting.postMessage('SKIP_WAITING');
+  };
+  document.body.appendChild(bar);
+}
+</script>
+
+</body>
+</html>
