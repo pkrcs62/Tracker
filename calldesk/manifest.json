@@ -1,6 +1,6 @@
 {
-  "name": "Loan Tracker – Leads",
-  "short_name": "LT Leads",
+  "name": "Leads",
+  "short_name": "Leads",
   "description": "Lead follow-up call tracker — interlinked with Loan Tracker",
   "start_url": "/Tracker/calldesk/index.html",
   "id": "/Tracker/calldesk/index.html",

@@ -1,7 +1,7 @@
 // Call Desk — service worker with forced auto-update (same pattern as
 // the main Loan Tracker's sw.js). Bump CACHE_VERSION on every release.
 
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const CACHE_NAME = 'call-desk-shell-' + CACHE_VERSION;
 const SHELL_FILES = ['./index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
