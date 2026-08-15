@@ -1,1 +1,14 @@
-
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "io.github.pkrcs62.twa",
+      "sha256_cert_fingerprints": [
+        "9D:B2:B3:86:22:A9:E5:95:4D:6A:45:68:E4:C6:6E:EE:40:B5:15:60:3C:8D:1D:D9:89:A7:75:7C:F6:91:B6:D0"
+      ]
+    }
+  }
+]
