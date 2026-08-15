@@ -14,7 +14,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,800&family=Sora:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700;800&family=Sora:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 /* =========================================================
@@ -60,7 +60,7 @@ body{
   min-height:100dvh;
   padding-bottom:calc(70px + var(--safe-bottom));
 }
-h1,h2,h3,.serif{font-family:'Fraunces',Georgia,serif;font-weight:700;letter-spacing:-.01em;}
+h1,h2,h3,.serif{font-family:'Space Grotesk',-apple-system,sans-serif;font-weight:700;letter-spacing:-.01em;}
 .mono{font-family:'Space Mono','SF Mono',SFMono-Regular,Consolas,'Liberation Mono',Menlo,monospace;letter-spacing:.2px;}
 a{color:inherit;}
 button{font-family:inherit;}
@@ -90,7 +90,7 @@ input,select,textarea{font-family:inherit;}
   flex-shrink:0;object-fit:cover;display:block;
 }
 .topbar h1{
-  font-family:'Fraunces',Georgia,serif;
+  font-family:'Space Grotesk',-apple-system,sans-serif;
   font-size:17.5px;margin:0;font-weight:700;letter-spacing:.1px;
   color:var(--navy);
   animation:brandGlow 3.2s ease-in-out infinite;
@@ -128,7 +128,7 @@ input,select,textarea{font-family:inherit;}
   background:radial-gradient(circle, rgba(201,162,75,.22) 0%, transparent 70%);
 }
 .home-hero-top{display:flex;align-items:flex-start;justify-content:space-between;}
-.home-hero-greet{font-family:'Fraunces',Georgia,serif;font-size:20px;font-weight:700;color:#fff;}
+.home-hero-greet{font-family:'Space Grotesk',-apple-system,sans-serif;font-size:20px;font-weight:700;color:#fff;}
 .home-hero-date{margin:2px 0 0;font-size:12px;color:#AEBBCB;font-weight:500;}
 .home-hero-main{margin-top:18px;cursor:pointer;position:relative;z-index:1;}
 .home-hero-num{
@@ -280,7 +280,7 @@ input,select,textarea{font-family:inherit;}
 /* ---------- Stamp badges (signature element) ---------- */
 .stamp{
   display:inline-flex;align-items:center;justify-content:center;
-  font-family:'Fraunces',Georgia,serif;font-weight:800;font-size:9.5px;
+  font-family:'Space Grotesk',-apple-system,sans-serif;font-weight:800;font-size:9.5px;
   letter-spacing:.6px;text-transform:uppercase;
   padding:4px 9px;border-radius:20px;border:1.5px solid currentColor;
   transform:rotate(-3deg);white-space:nowrap;
@@ -488,7 +488,7 @@ input,select,textarea{font-family:inherit;}
 .focus-ring .ring-fg.all-done{stroke:var(--sage);}
 .focus-ring-label{
   position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  font-family:'Fraunces',Georgia,serif;font-weight:700;font-size:14px;color:var(--ink);
+  font-family:'Space Grotesk',-apple-system,sans-serif;font-weight:700;font-size:14px;color:var(--ink);
 }
 .focus-title-wrap{flex:1;}
 .focus-title{font-size:15.5px;font-weight:700;color:var(--ink);}
@@ -621,7 +621,7 @@ input,select,textarea{font-family:inherit;}
   color:var(--paper);border-radius:var(--radius);padding:18px;margin-bottom:14px;
   box-shadow:var(--shadow-card);
 }
-.detail-hero .dh-name{font-family:'Fraunces',Georgia,serif;font-size:19px;font-weight:800;margin:0 0 3px;}
+.detail-hero .dh-name{font-family:'Space Grotesk',-apple-system,sans-serif;font-size:19px;font-weight:800;margin:0 0 3px;}
 .detail-hero .dh-id{font-size:12px;color:#AEBBCB;margin-bottom:12px;}
 .detail-hero .dh-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px;}
 .detail-hero .dh-grid .k{color:#8FA0B5;font-size:10px;text-transform:uppercase;letter-spacing:.4px;}
@@ -1116,6 +1116,31 @@ input,select,textarea{font-family:inherit;}
   </div>
 </div>
 
+<!-- Add Pending Doc(s) to an EXISTING file, from File Detail -->
+<div class="sheet-overlay" id="sheetAddDocToCase">
+  <div class="sheet" style="max-height:90vh;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <h3>➕ Add Pending Doc <span id="addDocLoanType" class="pill navy" style="margin-left:6px;"></span></h3>
+      <button class="sheet-close" onclick="closeSheet('sheetAddDocToCase')">✕</button>
+    </div>
+    <div class="sheet-body">
+      <p class="small muted" style="margin-top:-6px;margin-bottom:12px;">Tick any document this file still needs — already-added ones aren't shown. Adding a brand-new type here also adds it to this loan type's checklist for future files.</p>
+      <div id="addDocToCaseList"></div>
+      <div class="field" style="display:flex;gap:8px;align-items:flex-end;margin-top:14px;border-top:1px solid var(--line-soft);padding-top:14px;">
+        <div style="flex:1;">
+          <label>Add new document type</label>
+          <input type="text" id="addDocToCaseNewName" placeholder="e.g. Cancelled Cheque" onkeydown="if(event.key==='Enter'){event.preventDefault();addBrandNewDocToCase();}">
+        </div>
+        <button type="button" class="btn gold sm" style="width:auto;padding:11px 16px;" onclick="addBrandNewDocToCase()">+ Add</button>
+      </div>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn gold" onclick="confirmAddDocsToCase()">Add <span id="addDocToCaseCount">0</span> to this file</button>
+    </div>
+  </div>
+</div>
+
 <!-- Task — unified add/edit. Date decides Daily vs Scheduled automatically. -->
 <div class="sheet-overlay" id="sheetTask">
   <div class="sheet">
@@ -1241,10 +1266,6 @@ input,select,textarea{font-family:inherit;}
           <label>Dealer Sales Person *</label>
           <input type="text" id="dp-salesperson" placeholder="Name">
         </div>
-      </div>
-      <div class="field">
-        <label>Dealer Letter No.</label>
-        <input type="text" id="dp-dealerletter" class="mono" placeholder="e.g. DL-2026-014">
       </div>
       <div class="field">
         <label>Car Loan A/c (optional)</label>
@@ -1757,6 +1778,12 @@ function showView(name){
   if(target) target.classList.add('active');
   document.querySelectorAll('.tab-item').forEach(t=>t.classList.toggle('active', t.dataset.view===name));
   CURRENT_VIEW = name;
+  // Remember the tab so a refresh/reopen lands back where you were,
+  // not always on Home. "casedetail" is excluded — that's a specific
+  // file, not a tab, and there's no file id to restore it against.
+  if(name!=='casedetail'){
+    try{ localStorage.setItem('ltm_last_tab', name); }catch(e){}
+  }
 
   const titles = {
     home:['Tasks','Mobile Version'],
@@ -2020,6 +2047,84 @@ async function clearDocMasterForCurrentType(){
   updateDocsSummary();
   showToast(`${loanType} checklist cleared`);
 }
+
+/* ---------- Add Pending Doc(s) to an already-created file ---------- */
+let ADD_DOC_TO_CASE_ID = null;
+let ADD_DOC_TO_CASE_SELECTED = [];
+function openAddDocToCaseSheet(caseId){
+  const c = DATA.cases.find(x=>x.id===caseId);
+  if(!c) return;
+  ADD_DOC_TO_CASE_ID = caseId;
+  ADD_DOC_TO_CASE_SELECTED = [];
+  document.getElementById('addDocLoanType').textContent = c.loanType || '';
+  document.getElementById('addDocToCaseNewName').value = '';
+  renderAddDocToCaseList();
+  openSheet('sheetAddDocToCase');
+}
+function renderAddDocToCaseList(){
+  const c = DATA.cases.find(x=>x.id===ADD_DOC_TO_CASE_ID);
+  if(!c) return;
+  const master = getDocListForLoanType(c.loanType);
+  const already = new Set(c.docs.map(d=>d.name.toLowerCase()));
+  const available = master.filter(name=>!already.has(name.toLowerCase()));
+  const wrap = document.getElementById('addDocToCaseList');
+  if(!available.length){
+    wrap.innerHTML = `<div class="empty" style="padding:20px 10px;"><div class="icon">✅</div><div class="title">Nothing left to add</div><div class="desc">Every document in this loan type's checklist is already on this file — add a brand-new type below if needed</div></div>`;
+  } else {
+    wrap.innerHTML = available.map(name=>{
+      const checked = ADD_DOC_TO_CASE_SELECTED.includes(name);
+      const safeName = escapeHtml(name).replace(/'/g,"\\'");
+      return `
+        <div class="docpick-row ${checked?'checked':''}" onclick="toggleAddDocToCaseItem('${safeName}')">
+          <div class="check ${checked?'checked':''}">${checked?'✓':''}</div>
+          <div class="dp-name">${escapeHtml(name)}</div>
+        </div>`;
+    }).join('');
+  }
+  document.getElementById('addDocToCaseCount').textContent = ADD_DOC_TO_CASE_SELECTED.length;
+}
+function toggleAddDocToCaseItem(name){
+  const i = ADD_DOC_TO_CASE_SELECTED.indexOf(name);
+  if(i>-1) ADD_DOC_TO_CASE_SELECTED.splice(i,1);
+  else ADD_DOC_TO_CASE_SELECTED.push(name);
+  renderAddDocToCaseList();
+}
+async function addBrandNewDocToCase(){
+  const input = document.getElementById('addDocToCaseNewName');
+  const name = input.value.trim();
+  if(!name){ showToast('Type a document name first'); return; }
+  const c = DATA.cases.find(x=>x.id===ADD_DOC_TO_CASE_ID);
+  if(!c) return;
+  if(c.docs.some(d=>d.name.toLowerCase()===name.toLowerCase())){
+    showToast('Already on this file');
+    input.value='';
+    return;
+  }
+  // Permanently add to this loan type's checklist too, same as the
+  // create-file picker, so it's available for every future file.
+  const master = getDocListForLoanType(c.loanType);
+  if(!master.some(m=>m.toLowerCase()===name.toLowerCase())) master.push(name);
+  ADD_DOC_TO_CASE_SELECTED.push(name);
+  await saveData();
+  input.value = '';
+  renderAddDocToCaseList();
+  showToast(`Added "${name}" to ${c.loanType} checklist`);
+}
+async function confirmAddDocsToCase(){
+  if(!ADD_DOC_TO_CASE_SELECTED.length){ showToast('Tick at least one document, or add a new one'); return; }
+  const c = DATA.cases.find(x=>x.id===ADD_DOC_TO_CASE_ID);
+  if(!c) return;
+  const newDocs = ADD_DOC_TO_CASE_SELECTED.map(dn=>({
+    id: uid('doc'), name: dn, status: 'Pending', followupDate: '', receivedDate: '', note: ''
+  }));
+  c.docs.push(...newDocs);
+  await saveData();
+  closeSheet('sheetAddDocToCase');
+  showToast(`Added ${newDocs.length} document${newDocs.length===1?'':'s'} to this file`);
+  renderCaseDetail(c.id);
+  renderCasesList();
+  if(CURRENT_VIEW==='home') renderHome();
+}
 function updateDocsSummary(){
   const el = document.getElementById('nf-docs-summary');
   document.getElementById('nf-docs-selected').value = JSON.stringify(DOC_PICKER_SELECTED);
@@ -2225,6 +2330,7 @@ function renderCaseDetail(caseId){
     <div class="card">
       <h3>📄 Documents (${st.received}/${st.total} · ${st.total ? Math.round((st.received/st.total)*100) : (st.completed?100:0)}%)</h3>
       ${docsHtml || '<p class="small muted">No document checklist configured.</p>'}
+      <button type="button" class="btn outline sm" style="width:100%;margin-top:10px;" onclick="openAddDocToCaseSheet('${c.id}')">➕ Add Pending Doc</button>
     </div>
 
     <div class="card">
@@ -2660,7 +2766,7 @@ function setPayoutFilter(f){
   renderPayoutsList();
 }
 function openNewPayoutSheet(){
-  ['dp-acct','dp-customer','dp-loanamt','dp-dueamt','dp-salesperson','dp-showroom','dp-sanctiondate','dp-dealerletter','dp-editid'].forEach(id=>document.getElementById(id).value='');
+  ['dp-acct','dp-customer','dp-loanamt','dp-dueamt','dp-salesperson','dp-showroom','dp-sanctiondate','dp-editid'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('payoutSheetTitle').textContent = '🚗 Add Dealer Payout';
   document.getElementById('payoutSheetSaveBtn').textContent = 'Add to Due List';
   openSheet('sheetNewPayout');
@@ -2675,7 +2781,6 @@ function openEditPayoutSheet(id){
   document.getElementById('dp-loanamt').value = p.loanAmt||'';
   document.getElementById('dp-dueamt').value = p.dueAmt||'';
   document.getElementById('dp-salesperson').value = p.salesPerson||'';
-  document.getElementById('dp-dealerletter').value = p.dealerLetter||'';
   document.getElementById('dp-acct').value = p.acct||'';
   document.getElementById('payoutSheetTitle').textContent = '🚗 Edit Dealer Payout';
   document.getElementById('payoutSheetSaveBtn').textContent = 'Save Changes';
@@ -2689,7 +2794,6 @@ async function createPayoutFromSheet(){
   const loanAmt = document.getElementById('dp-loanamt').value.trim();
   const dueAmt = document.getElementById('dp-dueamt').value.trim();
   const salesPerson = document.getElementById('dp-salesperson').value.trim();
-  const dealerLetter = document.getElementById('dp-dealerletter').value.trim();
   const acct = document.getElementById('dp-acct').value.trim();
 
   if(!showroom || !customer || !dueAmt || !salesPerson){
@@ -2700,7 +2804,7 @@ async function createPayoutFromSheet(){
   if(editId){
     const p = DATA.dealerPayouts.find(x=>x.id===editId);
     if(p){
-      Object.assign(p, {showroom, customer, sanctionDate, loanAmt, dueAmt, salesPerson, dealerLetter, acct});
+      Object.assign(p, {showroom, customer, sanctionDate, loanAmt, dueAmt, salesPerson, acct});
     }
     await saveData();
     closeSheet('sheetNewPayout');
@@ -2708,7 +2812,7 @@ async function createPayoutFromSheet(){
   } else {
     DATA.dealerPayouts.push({
       id: uid('dp'),
-      showroom, customer, sanctionDate, loanAmt, dueAmt, salesPerson, dealerLetter, acct,
+      showroom, customer, sanctionDate, loanAmt, dueAmt, salesPerson, acct,
       status: 'Due',
       createdAt: new Date().toISOString(),
       paidAmount: '', paymentDate: '', paidBy: ''
@@ -2775,7 +2879,6 @@ function renderPayoutsList(){
       (p.customer||'').toLowerCase().includes(q) ||
       (p.acct||'').toLowerCase().includes(q) ||
       (p.showroom||'').toLowerCase().includes(q) ||
-      (p.dealerLetter||'').toLowerCase().includes(q) ||
       (p.salesPerson||'').toLowerCase().includes(q)
     );
   }
@@ -2818,7 +2921,6 @@ function renderPayoutsList(){
           ${p.loanAmt ? `<span class="pill navy">Loan: ${fmtAmount(p.loanAmt)}</span>` : ''}
           <span class="pill gold">Due: ${fmtAmount(p.dueAmt)}</span>
           ${p.sanctionDate ? `<span class="pill navy">Sanctioned: ${fmtDate(p.sanctionDate)}</span>` : ''}
-          ${p.dealerLetter ? `<span class="pill navy">Letter: ${escapeHtml(p.dealerLetter)}</span>` : ''}
           ${p.acct ? `<span class="pill navy">A/c: ${escapeHtml(p.acct)}</span>` : ''}
         </div>
         ${p.status==='Paid' ? `
@@ -2896,11 +2998,10 @@ async function handlePayoutExcelUpload(evt){
       const showroom = String(pick(row,'Showroom','Dealer','Dealer Name')).trim();
       const salesPerson = String(pick(row,'Dealer Sales Person','Sales Person','Sales Executive')).trim();
       const acct = String(pick(row,'Car Loan A/c','Loan A/c','Account')).trim();
-      const dealerLetter = String(pick(row,'Dealer Letter','Dealer Letter No')).trim();
 
       DATA.dealerPayouts.push({
         id: uid('dp'),
-        showroom, customer, sanctionDate, loanAmt, dueAmt, salesPerson, dealerLetter, acct,
+        showroom, customer, sanctionDate, loanAmt, dueAmt, salesPerson, acct,
         status: 'Due',
         createdAt: new Date().toISOString(),
         paidAmount: '', paymentDate: '', paidBy: ''
@@ -3413,8 +3514,8 @@ function openReport(key){
   }
   else if(key==='dealerpayout'){
     const rows = [...DATA.dealerPayouts].sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
-    CURRENT_REPORT = {title:def.label, headers:['Showroom','Customer','Sanction Date','Loan Amt','Dealer Sales Person','Due Payout Amt','Dealer Letter','Car Loan A/c','Status','Paid Amt','Payment Date','Payment Made By'],
-      rows: rows.map(p=>[p.showroom,p.customer,fmtDate(p.sanctionDate),fmtAmount(p.loanAmt),p.salesPerson,fmtAmount(p.dueAmt),p.dealerLetter,p.acct,p.status,p.status==='Paid'?fmtAmount(p.paidAmount):'—',p.status==='Paid'?fmtDate(p.paymentDate):'—',p.status==='Paid'?p.paidBy:'—'])};
+    CURRENT_REPORT = {title:def.label, headers:['Showroom','Customer','Sanction Date','Loan Amt','Dealer Sales Person','Due Payout Amt','Car Loan A/c','Status','Paid Amt','Payment Date','Payment Made By'],
+      rows: rows.map(p=>[p.showroom,p.customer,fmtDate(p.sanctionDate),fmtAmount(p.loanAmt),p.salesPerson,fmtAmount(p.dueAmt),p.acct,p.status,p.status==='Paid'?fmtAmount(p.paidAmount):'—',p.status==='Paid'?fmtDate(p.paymentDate):'—',p.status==='Paid'?p.paidBy:'—'])};
     body.innerHTML = rows.length ? rows.map(p=>reportCardHtml(p.customer, p.showroom, [
       ['Dealer',p.salesPerson],['Loan Amt',fmtAmount(p.loanAmt)],['Due',fmtAmount(p.dueAmt)]
     ], p.status==='Paid' ? `✅ Paid ${fmtAmount(p.paidAmount)} on ${fmtDate(p.paymentDate)} by ${p.paidBy}` : '⏳ Due')).join('') : emptyReportHtml();
@@ -3555,7 +3656,12 @@ function renderStorageInfo(){
 (async function init(){
   await loadData();
   refreshReminderDot();
-  renderHome();
+  let lastTab = 'home';
+  try{
+    const saved = localStorage.getItem('ltm_last_tab');
+    if(saved && document.getElementById('view-'+saved)) lastTab = saved;
+  }catch(e){}
+  showView(lastTab);
   initServiceWorkerAutoUpdate();
   updateNotifStatusUI();
   if(notificationsEnabled()){
