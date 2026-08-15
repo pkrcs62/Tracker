@@ -1,6 +1,6 @@
 {
-  "name": "Loan Tracker",
-  "short_name": "Loan Tracker",
+  "name": "Tasks",
+  "short_name": "Tasks",
   "description": "Branch loan case, task, lead and dealer payout tracker",
   "start_url": "/Tracker/index.html",
   "id": "/Tracker/index.html",

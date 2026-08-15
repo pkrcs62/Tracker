@@ -6,9 +6,9 @@
 <meta name="theme-color" content="#1E3A5F">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Loan Tracker">
+<meta name="apple-mobile-web-app-title" content="Tasks">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Loan Tracker</title>
+<title>Tasks</title>
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.json">
@@ -651,9 +651,9 @@ input,select,textarea{font-family:inherit;}
 <!-- ===================== TOP BAR ===================== -->
 <div class="topbar">
   <div class="brand">
-    <img src="icon-192.png" class="brand-mark" alt="Loan Tracker" onerror="this.style.display='none'">
+    <img src="icon-192.png" class="brand-mark" alt="Tasks" onerror="this.style.display='none'">
     <div>
-      <h1 id="topbarTitle">Loan Tracker</h1>
+      <h1 id="topbarTitle">Tasks</h1>
       <div class="sub" id="topbarSub">Mobile Version</div>
     </div>
   </div>
@@ -1759,7 +1759,7 @@ function showView(name){
   CURRENT_VIEW = name;
 
   const titles = {
-    home:['Loan Tracker','Mobile Version'],
+    home:['Tasks','Mobile Version'],
     cases:['Files','All files'],
     casedetail:['File Detail',''],
     tasks:['Tasks','Daily & scheduled'],
@@ -3329,7 +3329,7 @@ function runMorningDigestIfDue(){
   }
   fireLocalNotification(
     `📝 ${openToday} task${openToday===1?'':'s'} open today`,
-    `${r.overdueTasks.length + r.dailyCarried.length} carried/overdue, ${r.dailyToday.length + r.todayTasks.length} due today. Tap to open Loan Tracker.`,
+    `${r.overdueTasks.length + r.dailyCarried.length} carried/overdue, ${r.dailyToday.length + r.todayTasks.length} due today. Tap to open Tasks.`,
     'morning-digest'
   );
   localStorage.setItem(NOTIF_LAST_DIGEST_KEY, today);
