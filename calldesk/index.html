@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#1B2A3C">
+<meta name="theme-color" content="#1E3A5F">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Call Desk">
+<meta name="apple-mobile-web-app-title" content="LT Leads">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Call Desk</title>
+<title>Loan Tracker – Leads</title>
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.json">
@@ -15,15 +15,15 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 :root{
-  --navy:#1B2A3C; --navy-deep:#121E2C; --navy-soft:#2A3E56;
-  --paper:#F6F1E7; --paper-dim:#EDE6D6; --paper-card:#FFFDF8;
-  --ink:#241F17; --ink-soft:#5C5648; --ink-faint:#8B8474;
-  --stamp-red:#A64B3C; --stamp-red-bg:#F5E2DD;
-  --sage:#5F7A54; --sage-bg:#E4EBDD;
-  --gold:#C9A24B; --gold-bg:#F3E9D2;
-  --line:#DCD3BE; --line-soft:#E8E1D0;
-  --shadow-card:0 1px 3px rgba(27,42,60,.08), 0 1px 2px rgba(27,42,60,.06);
-  --shadow-float:0 8px 24px rgba(27,42,60,.18);
+  --navy:#1E3A5F; --navy-deep:#16294A; --navy-soft:#2F4E78;
+  --paper:#F5F3EE; --paper-dim:#EBE7DC; --paper-card:#FFFFFF;
+  --ink:#1C2530; --ink-soft:#5A6472; --ink-faint:#8D95A1;
+  --stamp-red:#C0554A; --stamp-red-bg:#FBE7E3;
+  --sage:#4F8A6E; --sage-bg:#E1F0E7;
+  --gold:#C9A24B; --gold-bg:#FBF1DB;
+  --line:#DDE1E8; --line-soft:#EAEDF2;
+  --shadow-card:0 1px 3px rgba(30,58,95,.08), 0 1px 2px rgba(30,58,95,.06);
+  --shadow-float:0 8px 24px rgba(30,58,95,.18);
   --radius:14px; --radius-sm:10px;
   --safe-top:env(safe-area-inset-top,0px); --safe-bottom:env(safe-area-inset-bottom,0px);
 }
@@ -182,9 +182,9 @@ input,select,textarea{font-family:inherit;}
 <body>
 
 <div class="topbar">
-  <img src="icon-192.png" class="brand-mark" alt="Call Desk" onerror="this.style.display='none'">
+  <img src="icon-192.png" class="brand-mark" alt="Loan Tracker Leads" onerror="this.style.display='none'">
   <div>
-    <h1>Call Desk</h1>
+    <h1>Loan Tracker</h1>
     <div class="sub">Lead follow-up tracker</div>
   </div>
   <div class="right" style="display:flex;align-items:center;gap:8px;">
