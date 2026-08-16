@@ -367,6 +367,21 @@ input,select,textarea{font-family:inherit;}
 .row-tag.sage{background:var(--sage-bg);color:var(--sage);}
 .row-tag.navy{background:rgba(30,58,95,.08);color:var(--navy-soft);}
 .row-chev{color:var(--ink-faint);font-size:15px;flex-shrink:0;}
+
+/* ---------- Inline icon actions — Gmail-style compact action row that
+   sits at the right edge of a .row-card instead of full-width buttons
+   underneath, so a row stays one line unless expanded. ---------- */
+.row-actions{display:flex;align-items:center;gap:2px;flex-shrink:0;}
+.row-icon-btn{
+  width:30px;height:30px;border-radius:8px;border:none;background:none;
+  display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--ink-faint);
+  cursor:pointer;transition:background .15s, transform .15s cubic-bezier(.34,1.56,.64,1);
+}
+.row-icon-btn:active{background:var(--paper-dim);transform:scale(.88);}
+.row-expand{
+  max-height:0;overflow:hidden;transition:max-height .25s cubic-bezier(.22,1,.36,1), padding .25s ease;
+}
+.row-expand.open{max-height:300px;padding-top:8px;}
 .lc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px;}
 .lc-name{font-size:15px;font-weight:700;color:var(--navy);margin:0;}
 .lc-id{font-size:11px;color:var(--ink-faint);margin-top:1px;}
@@ -443,8 +458,39 @@ input,select,textarea{font-family:inherit;}
 
 /* ---------- Views ---------- */
 .view{display:none;}
-.view.active{display:block;animation:fadein .28s cubic-bezier(.22,1,.36,1);}
+.view.active{display:block;}
 @keyframes fadein{from{opacity:0;transform:translateY(10px) scale(.99);}to{opacity:1;transform:none;}}
+
+/* ---------- Tab slide transitions — CRED-style directional push
+   instead of a plain fade. Direction is decided in JS (based on tab
+   order in the bottom bar) by adding one of these classes right before
+   swapping which .view has "active"; each class carries its own
+   keyframe so outgoing and incoming screens move in opposite,
+   complementary directions rather than just crossfading. ---------- */
+.view.active.slide-in-fwd{animation:slideInFwd .32s cubic-bezier(.22,1,.36,1);}
+.view.active.slide-in-back{animation:slideInBack .32s cubic-bezier(.22,1,.36,1);}
+.view.active.slide-in-deep{animation:slideInDeep .32s cubic-bezier(.22,1,.36,1);}
+@keyframes slideInFwd{from{opacity:0;transform:translateX(28px);}to{opacity:1;transform:translateX(0);}}
+@keyframes slideInBack{from{opacity:0;transform:translateX(-28px);}to{opacity:1;transform:translateX(0);}}
+@keyframes slideInDeep{from{opacity:0;transform:translateX(100%);}to{opacity:1;transform:translateX(0);}}
+
+/* ---------- Pull-to-refresh ---------- */
+.ptr-indicator{
+  position:fixed;left:50%;top:calc(8px + var(--safe-top) + 52px);z-index:39;
+  width:38px;height:38px;border-radius:50%;background:var(--paper-card);
+  box-shadow:var(--shadow-card);display:flex;align-items:center;justify-content:center;
+  transform:translate(-50%,-60px) scale(.6);opacity:0;
+  transition:transform .05s linear, opacity .05s linear;
+  pointer-events:none;
+}
+.ptr-indicator.releasing{transition:transform .3s cubic-bezier(.22,1,.36,1), opacity .3s ease;}
+.ptr-indicator.spinning .ptr-spinner{animation:ptrSpin .6s linear infinite;}
+.ptr-spinner{
+  width:18px;height:18px;border-radius:50%;
+  border:2.5px solid var(--line-soft);border-top-color:var(--gold);
+  transition:transform .05s linear;
+}
+@keyframes ptrSpin{to{transform:rotate(360deg);}}
 
 /* ---------- Dashboard stat tiles ---------- */
 .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
@@ -664,6 +710,7 @@ input,select,textarea{font-family:inherit;}
 .timeline-entry:last-child{padding-bottom:0;}
 .timeline-date{font-size:11px;font-weight:700;color:var(--ink-faint);}
 .timeline-text{font-size:13.5px;margin-top:3px;color:var(--ink);}
+.timeline-actions{display:flex;gap:4px;margin-top:5px;}
 .doc-toggle button.on.pending{background:var(--stamp-red);color:#fff;}
 
 /* ---------- Detail header card ---------- */
@@ -748,6 +795,10 @@ html[data-boot-tab="more"] .tab-item[data-view="more"]{ color:var(--gold) !impor
     </button>
     <button class="icon-btn" onclick="showView('more')" aria-label="More">☰</button>
   </div>
+</div>
+
+<div id="ptrIndicator" class="ptr-indicator">
+  <div class="ptr-spinner"></div>
 </div>
 
 <div id="app">
@@ -1394,6 +1445,12 @@ html[data-boot-tab="more"] .tab-item[data-view="more"]{ color:var(--gold) !impor
   <div class="sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-head"><h3 id="reportSheetTitle">Report</h3><button class="sheet-close" onclick="closeSheet('sheetReport')">✕</button></div>
+    <div id="reportFilterWrap" class="sheet-body hidden" style="padding-bottom:0;">
+      <div class="field" style="margin-bottom:0;">
+        <label>Loan Type</label>
+        <select id="reportLoanTypeFilter" onchange="openReport(CURRENT_REPORT_KEY)"></select>
+      </div>
+    </div>
     <div class="sheet-body" id="reportSheetBody"></div>
     <div class="sheet-foot btn-row">
       <button class="btn outline sm" onclick="exportReportCsv()">⬇️ Excel (CSV)</button>
@@ -1622,8 +1679,10 @@ function normalizeData(){
       // Migrate a pre-existing single-value remark into the timeline as
       // its first dated entry, rather than losing it when the UI moves
       // from a plain textarea to a point-wise log.
-      c.remarksLog = c.remark ? [{date: c.createdAt || new Date().toISOString(), text: c.remark}] : [];
+      c.remarksLog = c.remark ? [{id: uid('rmk'), date: c.createdAt || new Date().toISOString(), text: c.remark}] : [];
     }
+    // Backfill an id on any remark entry saved before edit/delete existed.
+    c.remarksLog.forEach(r=>{ if(!r.id) r.id = uid('rmk'); });
   });
   DATA.tasks.forEach(t=>{ if(typeof t.progress!=='number') t.progress = t.completed ? 100 : 0; });
   DATA.leads.forEach(l=>{
@@ -1815,6 +1874,16 @@ function fmtAmount(v){
   if(isNaN(n)) return escapeHtml(String(v));
   return '₹' + n.toLocaleString('en-IN');
 }
+// Report-only formatter — shows amounts in lakhs to 2 decimals so wide
+// rupee figures don't get clipped in exported PDF/CSV tables. The rest
+// of the app keeps full rupee amounts via fmtAmount(); this is used
+// only when building CURRENT_REPORT rows.
+function fmtAmountLakh(v){
+  if(v===undefined||v===null||v==='') return '—';
+  const n = Number(v);
+  if(isNaN(n)) return '—';
+  return '₹' + (n/100000).toFixed(2) + ' L';
+}
 function escapeHtml(s){
   return String(s==null?'':s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
@@ -1868,11 +1937,34 @@ function fireConfetti(originEl){
 let CURRENT_VIEW = 'home';
 let CURRENT_CASE_ID = null;
 
+// Left-to-right order of tabs as they appear in the bottom bar —
+// used only to decide slide direction, not for anything functional.
+const TAB_ORDER = ['home','cases','tasks','payouts','leads','more'];
+let IS_COLD_BOOT = false;
+function pickSlideDirection(fromView, toView){
+  if(IS_COLD_BOOT) return null; // first screen on app open shouldn't slide in from off-canvas
+  if(toView==='casedetail') return 'slide-in-deep';       // drilling into a file
+  if(fromView==='casedetail' && TAB_ORDER.includes(toView)) return 'slide-in-back'; // backing out of a file
+  const fromIdx = TAB_ORDER.indexOf(fromView);
+  const toIdx = TAB_ORDER.indexOf(toView);
+  if(fromIdx===-1 || toIdx===-1 || fromIdx===toIdx) return null; // unknown or same tab — no slide, avoids a pointless replay on re-tap
+  return toIdx > fromIdx ? 'slide-in-fwd' : 'slide-in-back';
+}
 function showView(name){
   document.documentElement.removeAttribute('data-boot-tab'); // pre-paint scaffolding no longer needed once real navigation runs
-  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   const target = document.getElementById('view-'+name);
-  if(target) target.classList.add('active');
+  // Decide slide direction before swapping: File Detail is always a
+  // "drill down" (slides in from the right, full-width); switching
+  // between bottom-tab screens slides forward/back based on their
+  // left-to-right order in the tab bar, so hopping from Home to Leads
+  // feels like moving right across the row, and back again feels like
+  // moving left — not just a generic crossfade.
+  const animClass = target ? pickSlideDirection(CURRENT_VIEW, name) : null;
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active','slide-in-fwd','slide-in-back','slide-in-deep'));
+  if(target){
+    target.classList.add('active');
+    if(animClass) target.classList.add(animClass);
+  }
   document.querySelectorAll('.tab-item').forEach(t=>t.classList.toggle('active', t.dataset.view===name));
   CURRENT_VIEW = name;
   writeViewHistory(name);
@@ -2630,7 +2722,11 @@ function renderCaseRemarksLog(c){
   return log.map(r=>`
     <div class="timeline-entry">
       <div class="timeline-date">${fmtDateTime(r.date)}</div>
-      <div class="timeline-text">${escapeHtml(r.text)}</div>
+      <div class="timeline-text" id="remarkText-${r.id}">${escapeHtml(r.text)}</div>
+      <div class="timeline-actions">
+        <button type="button" class="btn ghost sm" style="padding:3px 7px;font-size:11px;" onclick="editCaseRemark('${c.id}','${r.id}')">✎ Edit</button>
+        <button type="button" class="btn ghost sm" style="padding:3px 7px;font-size:11px;" onclick="deleteCaseRemark('${c.id}','${r.id}')">✕ Delete</button>
+      </div>
     </div>`).join('');
 }
 async function addCaseRemark(caseId){
@@ -2641,12 +2737,56 @@ async function addCaseRemark(caseId){
   if(!c) return;
   if(!Array.isArray(c.remarksLog)) c.remarksLog = [];
   const now = new Date().toISOString();
-  c.remarksLog.push({date: now, text});
+  c.remarksLog.push({id: uid('rmk'), date: now, text});
   c.remark = text; // keep the plain single-value field in sync for MIS/report exports that read it
   await saveData();
   input.value = '';
   document.getElementById('caseRemarksLog-'+caseId).innerHTML = renderCaseRemarksLog(c);
   showToast('Remark added');
+}
+function editCaseRemark(caseId, remarkId){
+  const c = DATA.cases.find(x=>x.id===caseId);
+  if(!c) return;
+  const r = (c.remarksLog||[]).find(x=>x.id===remarkId);
+  if(!r) return;
+  const textEl = document.getElementById('remarkText-'+remarkId);
+  if(!textEl) return;
+  const current = r.text;
+  textEl.innerHTML = `
+    <div style="display:flex;gap:6px;align-items:flex-start;">
+      <textarea id="remarkEditInput-${remarkId}" style="flex:1;min-height:50px;font-size:13.5px;">${escapeHtml(current)}</textarea>
+    </div>
+    <div class="btn-row" style="margin-top:6px;">
+      <button type="button" class="btn gold sm" onclick="saveCaseRemarkEdit('${caseId}','${remarkId}')">Save</button>
+      <button type="button" class="btn outline sm" onclick="document.getElementById('caseRemarksLog-${caseId}').innerHTML=renderCaseRemarksLog(DATA.cases.find(x=>x.id==='${caseId}'))">Cancel</button>
+    </div>`;
+}
+async function saveCaseRemarkEdit(caseId, remarkId){
+  const c = DATA.cases.find(x=>x.id===caseId);
+  if(!c) return;
+  const r = (c.remarksLog||[]).find(x=>x.id===remarkId);
+  if(!r) return;
+  const input = document.getElementById('remarkEditInput-'+remarkId);
+  const text = input.value.trim();
+  if(!text){ showToast('Remark cannot be empty — delete it instead if you want it gone'); return; }
+  r.text = text;
+  // Keep the legacy single-value field pointed at the most recent remark.
+  const sorted = [...c.remarksLog].sort((a,b)=>b.date.localeCompare(a.date));
+  c.remark = sorted[0].text;
+  await saveData();
+  document.getElementById('caseRemarksLog-'+caseId).innerHTML = renderCaseRemarksLog(c);
+  showToast('Remark updated');
+}
+async function deleteCaseRemark(caseId, remarkId){
+  if(!confirm('Delete this remark?')) return;
+  const c = DATA.cases.find(x=>x.id===caseId);
+  if(!c) return;
+  c.remarksLog = (c.remarksLog||[]).filter(x=>x.id!==remarkId);
+  const sorted = [...c.remarksLog].sort((a,b)=>b.date.localeCompare(a.date));
+  c.remark = sorted.length ? sorted[0].text : '';
+  await saveData();
+  document.getElementById('caseRemarksLog-'+caseId).innerHTML = renderCaseRemarksLog(c);
+  showToast('Remark deleted');
 }
 
 /* =========================================================
@@ -2737,29 +2877,45 @@ function renderTasksTab(){
     const dd = daysDiff(t.endDate);
     const isCarriedDaily = !t.completed && isDailyStyle(t) && t.endDate<today;
     let dateTag = '';
-    if(t.completed) dateTag = `<span class="pill sage">Done ${fmtDate((t.completedAt||'').slice(0,10))}</span>`;
-    else if(isCarriedDaily) dateTag = `<span class="pill red">Carried ${Math.abs(daysDiff(t.endDate))}d</span>`;
-    else if(dd<0) dateTag = `<span class="pill red">Overdue ${Math.abs(dd)}d</span>`;
-    else if(dd===0) dateTag = `<span class="pill gold">Today</span>`;
-    else dateTag = `<span class="pill navy">${fmtDate(t.endDate)}</span>`;
+    if(t.completed) dateTag = `<span class="row-tag sage">Done ${fmtDate((t.completedAt||'').slice(0,10))}</span>`;
+    else if(isCarriedDaily) dateTag = `<span class="row-tag red">Carried ${Math.abs(daysDiff(t.endDate))}d</span>`;
+    else if(dd<0) dateTag = `<span class="row-tag red">Overdue ${Math.abs(dd)}d</span>`;
+    else if(dd===0) dateTag = `<span class="row-tag gold">Today</span>`;
+    else dateTag = `<span class="row-tag navy">${fmtDate(t.endDate)}</span>`;
     return `
-      <div class="task-row pri-${t.priority}">
-        <div class="check ${t.completed?'checked':''}" onclick="if(!${t.completed}){fireConfetti(this);} toggleTask('${t.id}',${!t.completed})">${t.completed?'✓':''}</div>
-        <div class="tr-text">
-          <div class="${t.completed?'strike':''}"><span class="pri-dot ${t.priority}"></span>${escapeHtml(t.name)}</div>
-          <div class="tr-meta">${dateTag} ${c ? '· '+escapeHtml(c.customerName) : ''} · <span class="pill pri-${t.priority}" style="padding:2px 7px;">${t.priority}</span></div>
+      <div class="row-card pri-${t.priority}">
+        <div class="row-check ${t.completed?'checked':''}" onclick="if(!${t.completed}){fireConfetti(this);} toggleTask('${t.id}',${!t.completed})">${t.completed?'✓':''}</div>
+        <div class="row-main" onclick="toggleRowExpand('taskrow-${t.id}')">
+          <div class="row-title-line">
+            <span class="pri-dot ${t.priority}"></span>
+            <span class="row-name ${t.completed?'strike':''}">${escapeHtml(t.name)}</span>
+          </div>
+          <div class="row-meta">
+            ${dateTag}
+            ${c ? `<span class="dot"></span><span>${escapeHtml(c.customerName)}</span>` : ''}
+            ${!t.completed ? `<span class="dot"></span><span>${t.progress||0}%</span>` : ''}
+          </div>
           ${!t.completed ? `
-          <div class="task-progress-row">
-            <input type="range" class="task-progress-slider" min="0" max="100" step="5" value="${t.progress||0}"
-              oninput="this.nextElementSibling.textContent=this.value+'%'"
-              onchange="setTaskProgress('${t.id}', this.value)">
-            <span class="task-progress-pct">${t.progress||0}%</span>
+          <div class="row-expand" id="taskrow-${t.id}">
+            <div class="task-progress-row">
+              <input type="range" class="task-progress-slider" min="0" max="100" step="5" value="${t.progress||0}"
+                onclick="event.stopPropagation()"
+                oninput="this.nextElementSibling.textContent=this.value+'%'"
+                onchange="setTaskProgress('${t.id}', this.value)">
+              <span class="task-progress-pct">${t.progress||0}%</span>
+            </div>
           </div>` : ''}
         </div>
-        <button class="btn ghost sm" onclick="editTaskSheet('${t.id}')" style="padding:4px 7px;">✎</button>
-        <button class="btn ghost sm" onclick="deleteTask('${t.id}')" style="padding:4px 7px;">✕</button>
+        <div class="row-actions">
+          <button type="button" class="row-icon-btn" onclick="editTaskSheet('${t.id}')" aria-label="Edit">✎</button>
+          <button type="button" class="row-icon-btn" onclick="deleteTask('${t.id}')" aria-label="Delete">✕</button>
+        </div>
       </div>`;
   }).join('');
+}
+function toggleRowExpand(id){
+  const el = document.getElementById(id);
+  if(el) el.classList.toggle('open');
 }
 
 function openTaskSheet(){
@@ -3019,24 +3175,25 @@ function renderLeadsList(){
     const dueToday = l.status==='pending' && l.followupDate === today;
     const icon = LEAD_TYPE_ICON[l.loanType] || '📄';
     const sp = STATUS_PILL[l.status] || STATUS_PILL.pending;
+    const followTag = l.status==='pending' && l.followupDate
+      ? `<span class="row-tag ${overdue||dueToday?'red':'navy'}">${overdue?'Overdue':dueToday?'Today':'F/U'} ${fmtDate(l.followupDate)}</span>`
+      : '';
     return `
-    <div class="list-card ${overdue ? 'acc-red' : ACCENT[l.status]}">
-      <div class="list-card-body">
-        <div class="lc-top">
-          <div>
-            <p class="lc-name">${escapeHtml(l.name)}</p>
-            <div class="lc-id mono"><a href="tel:${escapeHtml(l.mobile)}" style="color:inherit;text-decoration:none;">📞 ${escapeHtml(l.mobile)}</a></div>
-          </div>
-          <span class="pill ${sp.cls}">${sp.label}</span>
+    <div class="row-card ${overdue ? 'acc-red' : ACCENT[l.status]}">
+      <div class="row-check" style="border-radius:50%;cursor:default;background:var(--paper-dim);border-color:var(--paper-dim);font-size:15px;" aria-hidden="true">${icon}</div>
+      <div class="row-main" onclick="toggleRowExpand('leadrow-${l.id}')">
+        <div class="row-title-line">
+          <span class="row-name">${escapeHtml(l.name)}</span>
+          <span class="row-tag ${sp.cls}">${sp.label.replace(/^\S+\s/,'')}</span>
         </div>
-        <div class="lc-meta">
-          <span class="pill navy">${icon} ${escapeHtml(l.loanType||'—')}</span>
-          ${l.status==='pending' && l.followupDate ? `<span class="pill ${overdue||dueToday?'red':'navy'}">${overdue?'⛔ Overdue':dueToday?'📌 Today':'Follow-up'} ${fmtDate(l.followupDate)}</span>` : ''}
+        <div class="row-meta">
+          <span>${escapeHtml(l.loanType||'—')}</span>
+          ${followTag ? `<span class="dot"></span>${followTag}` : ''}
         </div>
-        ${l.remark ? `<p class="small muted mt-8" style="margin-bottom:0;max-height:2.8em;overflow:hidden;">${escapeHtml(l.remark)}</p>` : ''}
-        ${l.status==='not_eligible' && l.notEligibleReason ? `<p class="small mt-8" style="margin-bottom:0;color:var(--stamp-red);"><b>Reason:</b> ${escapeHtml(l.notEligibleReason)}</p>` : ''}
-        <div class="lc-foot" style="border-top:none;padding-top:8px;flex-wrap:wrap;">
-          <div class="btn-row" style="flex:1;flex-wrap:wrap;">
+        <div class="row-expand" id="leadrow-${l.id}">
+          ${l.remark ? `<p class="small muted" style="margin:0 0 8px;">${escapeHtml(l.remark)}</p>` : ''}
+          ${l.status==='not_eligible' && l.notEligibleReason ? `<p class="small" style="margin:0 0 8px;color:var(--stamp-red);"><b>Reason:</b> ${escapeHtml(l.notEligibleReason)}</p>` : ''}
+          <div class="btn-row" style="flex-wrap:wrap;" onclick="event.stopPropagation()">
             ${l.status==='pending' ? `
               ${l.convertedCaseId
                 ? `<button class="btn outline sm" onclick="openCaseDetail('${l.convertedCaseId}')">View File</button>`
@@ -3047,10 +3204,13 @@ function renderLeadsList(){
               ${l.convertedCaseId ? `<button class="btn outline sm" onclick="openCaseDetail('${l.convertedCaseId}')">View File</button>` : ''}
               <button class="btn outline sm" onclick="reopenLead('${l.id}')">↺ Reopen</button>
             `}
-            <button class="btn outline sm" onclick="openEditLeadSheet('${l.id}')">✎ Edit</button>
           </div>
-          <button class="btn ghost sm" onclick="deleteLead('${l.id}')">✕</button>
         </div>
+      </div>
+      <div class="row-actions">
+        <a class="row-icon-btn" href="tel:${escapeHtml(l.mobile)}" onclick="event.stopPropagation()" aria-label="Call">📞</a>
+        <button type="button" class="row-icon-btn" onclick="openEditLeadSheet('${l.id}')" aria-label="Edit">✎</button>
+        <button type="button" class="row-icon-btn" onclick="deleteLead('${l.id}')" aria-label="Delete">✕</button>
       </div>
     </div>`;
   }).join('');
@@ -3781,20 +3941,35 @@ function startNotificationTimer(){
   }, 30*60*1000);
 }
 
+let CURRENT_REPORT_KEY = '';
 function openReport(key){
+  CURRENT_REPORT_KEY = key;
   const def = REPORT_DEFS.find(r=>r.key===key);
   document.getElementById('reportSheetTitle').textContent = def.label;
   const body = document.getElementById('reportSheetBody');
+  const filterWrap = document.getElementById('reportFilterWrap');
 
   if(key==='acctpendency'){
-    const rows = DATA.cases.map(c=>({c, pending: casePendingItems(c)})).filter(r=>r.pending.length>0);
-    CURRENT_REPORT = {title:def.label, headers:['File ID','Customer','Sanction Date','Amount','Stage','Pending Items','Remarks'],
-      rows: rows.map(({c,pending})=>[c.caseId,c.customerName,fmtDate(c.sanctionDate),fmtAmount(c.loanAmount),c.status,pending.join(', '),allCaseRemarks(c)])};
+    filterWrap.classList.remove('hidden');
+    const sel = document.getElementById('reportLoanTypeFilter');
+    if(!sel.dataset.built){
+      sel.innerHTML = '<option value="">All Loan Types</option>' + DATA.loanTypes.map(lt=>`<option value="${escapeHtml(lt)}">${escapeHtml(lt)}</option>`).join('');
+      sel.dataset.built = '1';
+    }
+    const filterType = sel.value;
+    let rows = DATA.cases.map(c=>({c, pending: casePendingItems(c)})).filter(r=>r.pending.length>0);
+    if(filterType) rows = rows.filter(r=>r.c.loanType===filterType);
+    CURRENT_REPORT = {title:def.label + (filterType ? ' — '+filterType : ' — All Types'), headers:['File ID','Customer','Loan Type','Sanction Date','Amount','Pending Items','Remarks'],
+      rows: rows.map(({c,pending})=>[c.caseId,c.customerName,c.loanType,fmtDate(c.sanctionDate),fmtAmountLakh(c.loanAmount),pending.join(', '),allCaseRemarks(c)])};
     body.innerHTML = rows.length ? rows.map(({c,pending})=>reportCardHtml(c.customerName, c.caseId, [
-      ['Sanction',fmtDate(c.sanctionDate)],['Amount',fmtAmount(c.loanAmount)],['Stage',c.status]
+      ['Loan Type',c.loanType],['Sanction',fmtDate(c.sanctionDate)],['Amount',fmtAmount(c.loanAmount)]
     ], pending.join(', ') + (allCaseRemarks(c)!=='—' ? ' · '+allCaseRemarks(c) : ''))).join('') : emptyReportHtml();
+    openSheet('sheetReport');
+    return;
   }
-  else if(key==='overdue'){
+  filterWrap.classList.add('hidden');
+
+  if(key==='overdue'){
     let items=[];
     DATA.cases.forEach(c=>c.docs.forEach(d=>{ if(d.status!=='Received' && d.followupDate && daysDiff(d.followupDate)<0) items.push({c,d}); }));
     CURRENT_REPORT = {title:def.label, headers:['File ID','Customer','Document','Follow-up Date','Days Overdue','Remarks'],
@@ -3804,7 +3979,7 @@ function openReport(key){
   else if(key==='completed'){
     const rows = DATA.cases.filter(c=>caseStats(c).completed);
     CURRENT_REPORT = {title:def.label, headers:['File ID','Customer','Loan Type','Amount','Sanction Date','Remarks'],
-      rows: rows.map(c=>[c.caseId,c.customerName,c.loanType,fmtAmount(c.loanAmount),fmtDate(c.sanctionDate),allCaseRemarks(c)])};
+      rows: rows.map(c=>[c.caseId,c.customerName,c.loanType,fmtAmountLakh(c.loanAmount),fmtDate(c.sanctionDate),allCaseRemarks(c)])};
     body.innerHTML = rows.length ? rows.map(c=>reportCardHtml(c.customerName, c.caseId, [['Loan Type',c.loanType],['Amount',fmtAmount(c.loanAmount)],['Sanction',fmtDate(c.sanctionDate)]], '')).join('') : emptyReportHtml();
   }
   else if(key==='dailytasks'){
@@ -3838,7 +4013,7 @@ function openReport(key){
   else if(key==='dealerpayout'){
     const rows = [...DATA.dealerPayouts].sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
     CURRENT_REPORT = {title:def.label, headers:['Showroom','Customer','Sanction Date','Loan Amt','Dealer Sales Person','Due Payout Amt','Car Loan A/c','Status','Paid Amt','Payment Date','Payment Made By'],
-      rows: rows.map(p=>[p.showroom,p.customer,fmtDate(p.sanctionDate),fmtAmount(p.loanAmt),p.salesPerson,fmtAmount(p.dueAmt),p.acct,p.status,p.status==='Paid'?fmtAmount(p.paidAmount):'—',p.status==='Paid'?fmtDate(p.paymentDate):'—',p.status==='Paid'?p.paidBy:'—'])};
+      rows: rows.map(p=>[p.showroom,p.customer,fmtDate(p.sanctionDate),fmtAmountLakh(p.loanAmt),p.salesPerson,fmtAmountLakh(p.dueAmt),p.acct,p.status,p.status==='Paid'?fmtAmountLakh(p.paidAmount):'—',p.status==='Paid'?fmtDate(p.paymentDate):'—',p.status==='Paid'?p.paidBy:'—'])};
     body.innerHTML = rows.length ? rows.map(p=>reportCardHtml(p.customer, p.showroom, [
       ['Dealer',p.salesPerson],['Loan Amt',fmtAmount(p.loanAmt)],['Due',fmtAmount(p.dueAmt)]
     ], p.status==='Paid' ? `✅ Paid ${fmtAmount(p.paidAmount)} on ${fmtDate(p.paymentDate)} by ${p.paidBy}` : '⏳ Due')).join('') : emptyReportHtml();
@@ -3904,7 +4079,10 @@ function buildAmountColumnStyles(headers){
   const styles = {};
   headers.forEach((h, i)=>{
     if(/amount|amt/i.test(h)){
-      styles[i] = { cellWidth: 62, halign: 'right' };
+      // Shorter now that report amounts are in lakhs (e.g. "₹9.00 L")
+      // rather than full rupee figures — a narrower reserved width still
+      // guarantees no clipping while leaving more room for text columns.
+      styles[i] = { cellWidth: 46, halign: 'right' };
     }
   });
   return styles;
@@ -4003,7 +4181,9 @@ function renderStorageInfo(){
     const saved = localStorage.getItem('ltm_last_tab');
     if(saved && document.getElementById('view-'+saved)) lastTab = saved;
   }catch(e){}
+  IS_COLD_BOOT = true; // suppress the slide animation for the very first screen shown
   showView(lastTab);
+  IS_COLD_BOOT = false;
   initServiceWorkerAutoUpdate();
   updateNotifStatusUI();
   if(notificationsEnabled()){
