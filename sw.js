@@ -12,7 +12,7 @@
 // logic in index.html, every device force-updates to the new version
 // within seconds of opening the app, no manual cache-clear needed.
 
-const CACHE_VERSION = 'v16';                    // <-- bump this on every deploy
+const CACHE_VERSION = 'v17';                    // <-- bump this on every deploy
 const CACHE_NAME = 'loan-tracker-shell-' + CACHE_VERSION;
 const SHELL_FILES = ['./index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 

@@ -613,6 +613,18 @@ input,select,textarea{font-family:inherit;}
   border:none;background:none;padding:6px 10px;font-size:11px;font-weight:700;border-radius:7px;color:var(--ink-faint);
 }
 .doc-toggle button.on.received{background:var(--sage);color:#fff;}
+
+/* ---------- Remarks timeline (point-wise, dated) ---------- */
+.timeline-entry{
+  border-left:2px solid var(--line);padding:2px 0 14px 14px;margin-left:5px;position:relative;
+}
+.timeline-entry::before{
+  content:'';position:absolute;left:-6px;top:3px;width:10px;height:10px;border-radius:50%;
+  background:var(--gold);border:2px solid var(--paper-card);
+}
+.timeline-entry:last-child{padding-bottom:0;}
+.timeline-date{font-size:11px;font-weight:700;color:var(--ink-faint);}
+.timeline-text{font-size:13.5px;margin-top:3px;color:var(--ink);}
 .doc-toggle button.on.pending{background:var(--stamp-red);color:#fff;}
 
 /* ---------- Detail header card ---------- */
@@ -647,6 +659,40 @@ input,select,textarea{font-family:inherit;}
 </style>
 </head>
 <body>
+
+<script>
+// Runs synchronously, before the rest of the page paints. Corrects which
+// tab's static markup carries the "active" class BEFORE first paint, so
+// the browser never has a chance to flash Home (the hardcoded default)
+// before JS gets around to restoring the real last-open tab — that flash
+// was the actual bug, not the tab restore logic itself, which was already
+// correct, just too late (it only ran after `await loadData()`).
+(function(){
+  try{
+    var saved = localStorage.getItem('ltm_last_tab');
+    if(saved && saved !== 'home'){
+      document.documentElement.setAttribute('data-boot-tab', saved);
+    }
+  }catch(e){}
+})();
+</script>
+<style>
+/* Paired with the inline script above: while data-boot-tab is set, hide
+   the hardcoded-active Home view and reveal the intended tab instead —
+   pure CSS, so it applies before any JS after this point has even run. */
+html[data-boot-tab] #view-home.view.active{ display:none; }
+html[data-boot-tab] .tab-item.active{ color:#8FA0B5 !important; transform:none !important; }
+html[data-boot-tab="cases"] #view-cases.view{ display:block; }
+html[data-boot-tab="cases"] .tab-item[data-view="cases"]{ color:var(--gold) !important; }
+html[data-boot-tab="tasks"] #view-tasks.view{ display:block; }
+html[data-boot-tab="tasks"] .tab-item[data-view="tasks"]{ color:var(--gold) !important; }
+html[data-boot-tab="leads"] #view-leads.view{ display:block; }
+html[data-boot-tab="leads"] .tab-item[data-view="leads"]{ color:var(--gold) !important; }
+html[data-boot-tab="payouts"] #view-payouts.view{ display:block; }
+html[data-boot-tab="payouts"] .tab-item[data-view="payouts"]{ color:var(--gold) !important; }
+html[data-boot-tab="more"] #view-more.view{ display:block; }
+html[data-boot-tab="more"] .tab-item[data-view="more"]{ color:var(--gold) !important; }
+</style>
 
 <!-- ===================== TOP BAR ===================== -->
 <div class="topbar">
@@ -1042,8 +1088,9 @@ input,select,textarea{font-family:inherit;}
 <div class="sheet-overlay" id="sheetNewCase">
   <div class="sheet">
     <div class="sheet-handle"></div>
-    <div class="sheet-head"><h3>📁 New Loan File</h3><button class="sheet-close" onclick="closeSheet('sheetNewCase')">✕</button></div>
+    <div class="sheet-head"><h3 id="caseSheetTitle">📁 New Loan File</h3><button class="sheet-close" onclick="closeSheet('sheetNewCase')">✕</button></div>
     <div class="sheet-body">
+      <input type="hidden" id="nf-editid">
       <div class="field">
         <label>Customer Name *</label>
         <input type="text" id="nf-name" placeholder="Full name">
@@ -1068,13 +1115,15 @@ input,select,textarea{font-family:inherit;}
           <input type="number" id="nf-amount" placeholder="0" min="0">
         </div>
       </div>
-      <div class="field">
-        <label>Branch</label>
-        <input type="text" id="nf-branch" placeholder="Branch name">
-      </div>
-      <div class="field">
-        <label>Remarks</label>
-        <textarea id="nf-remark" placeholder="Any note about this file"></textarea>
+      <div class="field-row">
+        <div class="field">
+          <label>Branch</label>
+          <input type="text" id="nf-branch" placeholder="Branch name">
+        </div>
+        <div class="field">
+          <label>Loan A/c — Last 4 digits</label>
+          <input type="text" id="nf-acctlast4" class="mono" placeholder="e.g. 4821" maxlength="4" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,4)">
+        </div>
       </div>
       <div class="field">
         <label>Documents *</label>
@@ -1085,7 +1134,7 @@ input,select,textarea{font-family:inherit;}
       </div>
     </div>
     <div class="sheet-foot">
-      <button class="btn gold" onclick="createCaseFromSheet()">Create File</button>
+      <button class="btn gold" onclick="createCaseFromSheet()" id="caseSheetSaveBtn">Create File</button>
     </div>
   </div>
 </div>
@@ -1535,6 +1584,15 @@ function normalizeData(){
   if(!DATA.tasks) DATA.tasks = [];
   if(!DATA.cases) DATA.cases = [];
   if(!DATA.nextCaseSeq) DATA.nextCaseSeq = 1;
+  DATA.cases.forEach(c=>{
+    if(!Array.isArray(c.remarksLog)){
+      // Migrate a pre-existing single-value remark into the timeline as
+      // its first dated entry, rather than losing it when the UI moves
+      // from a plain textarea to a point-wise log.
+      c.remarksLog = c.remark ? [{date: c.createdAt || new Date().toISOString(), text: c.remark}] : [];
+    }
+    if(typeof c.acctLast4 !== 'string') c.acctLast4 = '';
+  });
   DATA.tasks.forEach(t=>{ if(typeof t.progress!=='number') t.progress = t.completed ? 100 : 0; });
   DATA.leads.forEach(l=>{
     if(!l.status) l.status = l.converted ? 'converted' : 'pending';
@@ -1713,6 +1771,12 @@ function fmtDate(iso){
   if(isNaN(d)) return iso;
   return d.toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'});
 }
+function fmtDateTime(iso){
+  if(!iso) return '—';
+  const d = new Date(iso);
+  if(isNaN(d)) return iso;
+  return d.toLocaleDateString('en-IN', {day:'numeric', month:'short'}) + ' · ' + d.toLocaleTimeString('en-IN', {hour:'numeric', minute:'2-digit'});
+}
 function fmtAmount(v){
   if(v===undefined||v===null||v==='') return '—';
   const n = Number(v);
@@ -1773,11 +1837,13 @@ let CURRENT_VIEW = 'home';
 let CURRENT_CASE_ID = null;
 
 function showView(name){
+  document.documentElement.removeAttribute('data-boot-tab'); // pre-paint scaffolding no longer needed once real navigation runs
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   const target = document.getElementById('view-'+name);
   if(target) target.classList.add('active');
   document.querySelectorAll('.tab-item').forEach(t=>t.classList.toggle('active', t.dataset.view===name));
   CURRENT_VIEW = name;
+  writeViewHistory(name);
   // Remember the tab so a refresh/reopen lands back where you were,
   // not always on Home. "casedetail" is excluded — that's a specific
   // file, not a tab, and there's no file id to restore it against.
@@ -1819,7 +1885,58 @@ function handleFabTap(){
   else if(CURRENT_VIEW==='payouts') openNewPayoutSheet();
 }
 
-function openSheet(id){ document.getElementById(id).classList.add('active'); }
+/* =========================================================
+   BACK BUTTON / HISTORY — without this, Android's back button
+   has nothing to "go back" to (the app never leaves the page)
+   and exits the whole PWA on first press. Design:
+   - Switching bottom-tab screens REPLACES the current history
+     entry (tab-hopping never grows the stack, so you don't have
+     to press back once per tab you've ever visited).
+   - Opening a File Detail, or any sheet/modal, PUSHES a new
+     entry (a real "drill-down" you can back out of).
+   - Every push/replace carries {ltmView:name}. On Android back
+     (popstate), we first close the top-most open sheet if any;
+     otherwise we restore whatever view the browser navigated
+     back to. Only once nothing is left to pop does the OS's
+     native "exit app" behavior take over — which is the correct,
+     expected point to actually leave.
+========================================================= */
+const TAB_NAMES = new Set(['home','cases','tasks','leads','payouts','more']);
+let SUPPRESS_NEXT_HISTORY_WRITE = false;
+let OPEN_SHEET_STACK = [];
+
+function writeViewHistory(name){
+  if(SUPPRESS_NEXT_HISTORY_WRITE){ SUPPRESS_NEXT_HISTORY_WRITE = false; return; }
+  try{
+    const state = {ltmView:name};
+    if(TAB_NAMES.has(name)) history.replaceState(state, '', '#'+name);
+    else history.pushState(state, '', '#'+name);
+  }catch(e){}
+}
+window.addEventListener('popstate', (e)=>{
+  // 1) A sheet/modal is open — Android back should dismiss it, not
+  //    navigate the screen underneath.
+  if(OPEN_SHEET_STACK.length){
+    const topId = OPEN_SHEET_STACK.pop();
+    const el = document.getElementById(topId);
+    if(el) el.classList.remove('active');
+    return;
+  }
+  // 2) Restore whichever view the browser has stepped back to.
+  const target = e.state && e.state.ltmView;
+  if(target && document.getElementById('view-'+target)){
+    SUPPRESS_NEXT_HISTORY_WRITE = true; // browser already moved; don't push/replace again
+    showView(target);
+  }
+  // 3) If there's no state left at all, there's nothing more for us
+  //    to intercept — let the OS handle it (this is the true exit point).
+});
+
+function openSheet(id){
+  document.getElementById(id).classList.add('active');
+  OPEN_SHEET_STACK.push(id);
+  try{ history.pushState({ltmSheet:id}, '', '#'+id); }catch(e){}
+}
 
 /* ---------- Collapsible tab dashboard — remembers collapsed state
    per tab across visits, so it stays out of the way once you've
@@ -1846,7 +1963,22 @@ function applyTabDashState(tabKey){
   const state = getTabDashState();
   el.classList.toggle('collapsed', !!state[tabKey]);
 }
-function closeSheet(id){ document.getElementById(id).classList.remove('active'); }
+function closeSheet(id){
+  // Route programmatic closes (X button, Save, Cancel, etc.) through the
+  // same history.back() the Android back button uses, so there's exactly
+  // one place (the popstate handler above) that ever removes a sheet's
+  // 'active' class — history position and visible UI can never drift apart.
+  if(OPEN_SHEET_STACK.length && OPEN_SHEET_STACK[OPEN_SHEET_STACK.length-1]===id){
+    history.back();
+  } else {
+    // Defensive fallback: sheet wasn't the top of our tracked stack
+    // (shouldn't normally happen) — close it directly and drop it from
+    // the stack wherever it is, without touching history.
+    document.getElementById(id).classList.remove('active');
+    const i = OPEN_SHEET_STACK.indexOf(id);
+    if(i>-1) OPEN_SHEET_STACK.splice(i,1);
+  }
+}
 
 /* =========================================================
    CASE LOGIC
@@ -1892,15 +2024,33 @@ function nextCaseSeqId(){
 }
 
 async function createCaseFromSheet(){
+  const editId = document.getElementById('nf-editid').value;
   const name = document.getElementById('nf-name').value.trim();
   const caseId = document.getElementById('nf-caseid').value.trim();
   const loanType = document.getElementById('nf-loantype').value;
   const sanctionDate = document.getElementById('nf-sanctiondate').value;
   const loanAmount = document.getElementById('nf-amount').value.trim();
   const branch = document.getElementById('nf-branch').value.trim();
-  const remark = document.getElementById('nf-remark').value.trim();
+  const acctLast4 = document.getElementById('nf-acctlast4').value.trim();
 
   if(!name || !caseId){ showToast('Please fill Name and File ID'); return; }
+
+  if(editId){
+    const c = DATA.cases.find(x=>x.id===editId);
+    if(!c){ showToast('File not found'); return; }
+    if(DATA.cases.some(x=>x.id!==editId && x.caseId.toLowerCase()===caseId.toLowerCase())){
+      showToast('Another file already uses this ID'); return;
+    }
+    Object.assign(c, {caseId, customerName:name, loanType, branch, sanctionDate, loanAmount, acctLast4});
+    await saveData();
+    closeSheet('sheetNewCase');
+    showToast('File updated');
+    renderCaseDetail(editId);
+    if(CURRENT_VIEW==='cases') renderCasesList();
+    if(CURRENT_VIEW==='home') renderHome();
+    return;
+  }
+
   if(DATA.cases.some(c=>c.caseId.toLowerCase()===caseId.toLowerCase())){
     showToast('A file with this ID already exists'); return;
   }
@@ -1912,16 +2062,22 @@ async function createCaseFromSheet(){
 
   const newCase = {
     id: uid('case'),
-    caseId, customerName: name, loanType, branch, sanctionDate, loanAmount,
+    caseId, customerName: name, loanType, branch, sanctionDate, loanAmount, acctLast4,
     status: 'New',
     createdAt: new Date().toISOString(),
     docs,
     loSign:false, loSignDate:'',
     bmSign:false, bmSignDate:'',
     stamp:false, stampDate:'',
-    remark,
+    remark: '', remarksLog: [],
     contacts: []
   };
+
+  if(PENDING_LEAD_CONVERSION && PENDING_LEAD_CONVERSION.remark){
+    const note = 'From lead: '+PENDING_LEAD_CONVERSION.remark;
+    newCase.remark = note;
+    newCase.remarksLog.push({date: new Date().toISOString(), text: note});
+  }
 
   DATA.cases.push(newCase);
 
@@ -1933,7 +2089,7 @@ async function createCaseFromSheet(){
 
   await saveData();
   closeSheet('sheetNewCase');
-  ['nf-name','nf-caseid','nf-sanctiondate','nf-amount','nf-branch','nf-remark'].forEach(id=>document.getElementById(id).value='');
+  ['nf-name','nf-caseid','nf-sanctiondate','nf-amount','nf-branch','nf-acctlast4','nf-editid'].forEach(id=>document.getElementById(id).value='');
   DOC_PICKER_SELECTED = [];
   updateDocsSummary();
   showToast('Case created: '+caseId);
@@ -1943,9 +2099,31 @@ async function createCaseFromSheet(){
 }
 
 function openNewCaseSheet(){
+  ['nf-name','nf-caseid','nf-sanctiondate','nf-amount','nf-branch','nf-acctlast4','nf-editid'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('caseSheetTitle').textContent = '📁 New Loan File';
+  document.getElementById('caseSheetSaveBtn').textContent = 'Create File';
+  document.getElementById('caseSheetSaveBtn').style.display = '';
   refreshLoanTypeSelect('nf-loantype');
   DOC_PICKER_SELECTED = [];
   updateDocsSummary();
+  openSheet('sheetNewCase');
+}
+function openEditCaseSheet(caseId){
+  const c = DATA.cases.find(x=>x.id===caseId);
+  if(!c) return;
+  refreshLoanTypeSelect('nf-loantype');
+  document.getElementById('nf-editid').value = c.id;
+  document.getElementById('nf-name').value = c.customerName || '';
+  document.getElementById('nf-caseid').value = c.caseId || '';
+  document.getElementById('nf-loantype').value = c.loanType || DATA.loanTypes[0];
+  document.getElementById('nf-sanctiondate').value = c.sanctionDate || '';
+  document.getElementById('nf-amount').value = c.loanAmount || '';
+  document.getElementById('nf-branch').value = c.branch || '';
+  document.getElementById('nf-acctlast4').value = c.acctLast4 || '';
+  document.getElementById('caseSheetTitle').textContent = '✎ Edit Loan File';
+  document.getElementById('caseSheetSaveBtn').textContent = 'Save Changes';
+  // Editing doesn't touch the document checklist — that's managed via
+  // "Add Pending Doc" on File Detail — so hide the picker for this mode.
   openSheet('sheetNewCase');
 }
 
@@ -2054,6 +2232,10 @@ let ADD_DOC_TO_CASE_SELECTED = [];
 function openAddDocToCaseSheet(caseId){
   const c = DATA.cases.find(x=>x.id===caseId);
   if(!c) return;
+  if(c.stamp){
+    showToast('This file is already stamped — reopen by unticking Stamp first if you need to add a document');
+    return;
+  }
   ADD_DOC_TO_CASE_ID = caseId;
   ADD_DOC_TO_CASE_SELECTED = [];
   document.getElementById('addDocLoanType').textContent = c.loanType || '';
@@ -2233,11 +2415,11 @@ function renderCasesList(){
   const pendingCount = DATA.cases.filter(c=>!caseStats(c).completed).length;
   const overdueCount = DATA.cases.filter(c=>caseHasOverdue(c)).length;
   const completeCount = DATA.cases.filter(c=>caseStats(c).completed).length;
-  document.getElementById('dashCasesPending').textContent = pendingCount;
+  animateCountUp('dashCasesPending', pendingCount);
   document.getElementById('dashCasesPending2').textContent = pendingCount;
-  document.getElementById('dashCasesOverdue').textContent = overdueCount;
+  animateCountUp('dashCasesOverdue', overdueCount);
   document.getElementById('dashCasesOverdue2').textContent = overdueCount;
-  document.getElementById('dashCasesComplete').textContent = completeCount;
+  animateCountUp('dashCasesComplete', completeCount);
   document.getElementById('dashCasesComplete2').textContent = completeCount;
 
   if(q){
@@ -2305,7 +2487,6 @@ function renderCaseDetail(caseId){
     <div class="doc-row">
       <div class="dr-name">
         ${escapeHtml(d.name)}
-        ${d.status==='Pending' ? `<input type="date" value="${d.followupDate||''}" onchange="setDocFollowup('${c.id}','${d.id}',this.value)" style="display:block;margin-top:5px;font-size:11px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;color:var(--ink-soft);">` : ''}
       </div>
       <div class="doc-toggle">
         <button class="${d.status==='Pending'?'on pending':''}" onclick="toggleDoc('${c.id}','${d.id}','Pending')">Pending</button>
@@ -2314,7 +2495,10 @@ function renderCaseDetail(caseId){
     </div>`).join('');
 
   body.innerHTML = `
-    <button class="btn ghost sm" style="padding-left:0;margin-bottom:8px;" onclick="showView('cases')">← Back to Files</button>
+    <div class="btn-row" style="margin-bottom:8px;">
+      <button class="btn ghost sm" style="padding-left:0;" onclick="showView('cases')">← Back to Files</button>
+      <button class="btn outline sm" style="width:auto;margin-left:auto;" onclick="openEditCaseSheet('${c.id}')">✎ Edit File</button>
+    </div>
 
     <div class="detail-hero">
       <div class="dh-name">${escapeHtml(c.customerName)}</div>
@@ -2324,13 +2508,16 @@ function renderCaseDetail(caseId){
         <div><div class="k">Amount</div><div class="v">${fmtAmount(c.loanAmount)}</div></div>
         <div><div class="k">Sanction Date</div><div class="v">${fmtDate(c.sanctionDate)}</div></div>
         <div><div class="k">Branch</div><div class="v">${escapeHtml(c.branch||'—')}</div></div>
+        ${c.acctLast4 ? `<div><div class="k">Loan A/c (Last 4)</div><div class="v mono">••${escapeHtml(c.acctLast4)}</div></div>` : ''}
       </div>
     </div>
 
     <div class="card">
       <h3>📄 Documents (${st.received}/${st.total} · ${st.total ? Math.round((st.received/st.total)*100) : (st.completed?100:0)}%)</h3>
       ${docsHtml || '<p class="small muted">No document checklist configured.</p>'}
-      <button type="button" class="btn outline sm" style="width:100%;margin-top:10px;" onclick="openAddDocToCaseSheet('${c.id}')">➕ Add Pending Doc</button>
+      ${c.stamp
+        ? `<p class="small muted mt-8" style="text-align:center;">🔒 File is stamped — untick Stamp below to add more documents</p>`
+        : `<button type="button" class="btn outline sm" style="width:100%;margin-top:10px;" onclick="openAddDocToCaseSheet('${c.id}')">➕ Add Pending Doc</button>`}
     </div>
 
     <div class="card">
@@ -2344,11 +2531,39 @@ function renderCaseDetail(caseId){
 
     <div class="card">
       <h3>📝 Remarks</h3>
-      <textarea onchange="updateCaseField('${c.id}','remark',this.value)" placeholder="Add a note...">${escapeHtml(c.remark||'')}</textarea>
+      <div class="field" style="display:flex;gap:8px;align-items:flex-start;margin-bottom:${(c.remarksLog&&c.remarksLog.length)?'14px':'0'};">
+        <input type="text" id="cd-newremark-${c.id}" placeholder="Add a remark..." style="flex:1;" onkeydown="if(event.key==='Enter'){event.preventDefault();addCaseRemark('${c.id}');}">
+        <button type="button" class="btn gold sm" style="width:auto;" onclick="addCaseRemark('${c.id}')">Add</button>
+      </div>
+      <div id="caseRemarksLog-${c.id}">${renderCaseRemarksLog(c)}</div>
     </div>
 
     <button class="btn danger sm" style="width:100%;margin-top:6px;" onclick="deleteCase('${c.id}')">🗑️ Delete File</button>
   `;
+}
+function renderCaseRemarksLog(c){
+  const log = [...(c.remarksLog||[])].sort((a,b)=>b.date.localeCompare(a.date));
+  if(!log.length) return '';
+  return log.map(r=>`
+    <div class="timeline-entry">
+      <div class="timeline-date">${fmtDateTime(r.date)}</div>
+      <div class="timeline-text">${escapeHtml(r.text)}</div>
+    </div>`).join('');
+}
+async function addCaseRemark(caseId){
+  const input = document.getElementById('cd-newremark-'+caseId);
+  const text = input.value.trim();
+  if(!text){ showToast('Type a remark first'); return; }
+  const c = DATA.cases.find(x=>x.id===caseId);
+  if(!c) return;
+  if(!Array.isArray(c.remarksLog)) c.remarksLog = [];
+  const now = new Date().toISOString();
+  c.remarksLog.push({date: now, text});
+  c.remark = text; // keep the plain single-value field in sync for MIS/report exports that read it
+  await saveData();
+  input.value = '';
+  document.getElementById('caseRemarksLog-'+caseId).innerHTML = renderCaseRemarksLog(c);
+  showToast('Remark added');
 }
 
 /* =========================================================
@@ -2383,11 +2598,11 @@ function renderTasksTab(){
   const doneToday = DATA.tasks.filter(t=>t.completed && (t.completedAt||'').slice(0,10)===today).length;
   const dashTasksToday = document.getElementById('dashTasksToday');
   if(dashTasksToday){
-    dashTasksToday.textContent = dueToday;
+    animateCountUp('dashTasksToday', dueToday);
     document.getElementById('dashTasksToday2').textContent = dueToday;
-    document.getElementById('dashTasksOverdue').textContent = overdueTasks;
+    animateCountUp('dashTasksOverdue', overdueTasks);
     document.getElementById('dashTasksOverdue2').textContent = overdueTasks;
-    document.getElementById('dashTasksDone').textContent = doneToday;
+    animateCountUp('dashTasksDone', doneToday);
     document.getElementById('dashTasksDone2').textContent = doneToday;
   }
 
@@ -2668,9 +2883,11 @@ function convertLeadToCase(id){
   if(!lead) return;
   PENDING_LEAD_CONVERSION = lead;
   refreshLoanTypeSelect('nf-loantype');
+  document.getElementById('nf-editid').value = '';
   document.getElementById('nf-name').value = lead.name;
   if(lead.loanType) document.getElementById('nf-loantype').value = lead.loanType;
-  if(lead.remark) document.getElementById('nf-remark').value = 'From lead: '+lead.remark;
+  document.getElementById('caseSheetTitle').textContent = '📁 New Loan File';
+  document.getElementById('caseSheetSaveBtn').textContent = 'Create File';
   DOC_PICKER_SELECTED = [];   // re-scope to whichever loan type was just set above
   updateDocsSummary();
   openSheet('sheetNewCase');
@@ -2684,11 +2901,11 @@ function renderLeadsList(){
   const pendingAll = DATA.leads.filter(l=>l.status==='pending');
   const overdueAll = pendingAll.filter(l=>l.followupDate && l.followupDate<today0);
   const convertedAll = DATA.leads.filter(l=>l.status==='converted');
-  document.getElementById('dashLeadsPending').textContent = pendingAll.length;
+  animateCountUp('dashLeadsPending', pendingAll.length);
   document.getElementById('dashLeadsPending2').textContent = pendingAll.length;
-  document.getElementById('dashLeadsOverdue').textContent = overdueAll.length;
+  animateCountUp('dashLeadsOverdue', overdueAll.length);
   document.getElementById('dashLeadsOverdue2').textContent = overdueAll.length;
-  document.getElementById('dashLeadsConverted').textContent = convertedAll.length;
+  animateCountUp('dashLeadsConverted', convertedAll.length);
   document.getElementById('dashLeadsConverted2').textContent = convertedAll.length;
 
   if(q) list = list.filter(l=>
@@ -2888,7 +3105,7 @@ function renderPayoutsList(){
   list.sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
 
   const dueAll = DATA.dealerPayouts.filter(p=>p.status==='Due');
-  document.getElementById('payoutDueCount').textContent = dueAll.length;
+  animateCountUp('payoutDueCount', dueAll.length);
   const dueTotal = dueAll.reduce((s,p)=>s + (Number(p.dueAmt)||0), 0);
   document.getElementById('payoutDueAmt').textContent = fmtAmount(dueTotal);
   document.getElementById('payoutDueAmt2').textContent = fmtAmount(dueTotal);
@@ -2897,7 +3114,7 @@ function renderPayoutsList(){
   const thisMonth = todayISO().slice(0,7);
   const paidThisMonth = DATA.dealerPayouts.filter(p=>p.status==='Paid' && p.paymentDate && p.paymentDate.slice(0,7)===thisMonth);
   const paidThisMonthAmt = paidThisMonth.reduce((s,p)=>s+(Number(p.paidAmount)||0),0);
-  document.getElementById('dashPayoutPaidMonth').textContent = paidThisMonth.length;
+  animateCountUp('dashPayoutPaidMonth', paidThisMonth.length);
   document.getElementById('dashPayoutPaidMonth2').textContent = paidThisMonth.length;
   document.getElementById('dashPayoutPaidAmtMonth').textContent = fmtAmount(paidThisMonthAmt);
 
@@ -3093,6 +3310,29 @@ function openReminders(){
 /* =========================================================
    HOME DASHBOARD
 ========================================================= */
+/* ---------- Animated count-up for stat numbers — CRED-style number
+   roll instead of just appearing, cheap and effective on the tiles
+   people check first (Home hero, dashboard stats). Skips the animation
+   for currency strings (₹...) since those aren't meaningfully "counted
+   up" digit by digit — those still update instantly. ---------- */
+function animateCountUp(elId, targetNum, durationMs){
+  const el = document.getElementById(elId);
+  if(!el) return;
+  durationMs = durationMs || 550;
+  const startNum = parseInt(el.textContent.replace(/[^\d-]/g,''), 10) || 0;
+  if(startNum === targetNum){ el.textContent = targetNum; return; }
+  const startTime = performance.now();
+  function tick(now){
+    const t = Math.min(1, (now - startTime) / durationMs);
+    const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+    const val = Math.round(startNum + (targetNum - startNum) * eased);
+    el.textContent = val;
+    if(t < 1) requestAnimationFrame(tick);
+    else el.textContent = targetNum;
+  }
+  requestAnimationFrame(tick);
+}
+
 function renderHome(){
   const hr = new Date().getHours();
   const greetTxt = hr<12 ? 'Good morning' : hr<17 ? 'Good afternoon' : 'Good evening';
@@ -3109,11 +3349,11 @@ function renderHome(){
   const duePayouts = DATA.dealerPayouts.filter(p=>p.status==='Due');
   const duePayoutAmt = duePayouts.reduce((s,p)=>s+(Number(p.dueAmt)||0),0);
 
-  document.getElementById('statTotalCases').textContent = totalCases;
-  document.getElementById('statPending').textContent = pendingCount;
-  document.getElementById('statOverdue').textContent = overdueCount;
-  document.getElementById('statTasksToday').textContent = tasksToday;
-  document.getElementById('statCompleted').textContent = completedCount;
+  animateCountUp('statTotalCases', totalCases);
+  animateCountUp('statPending', pendingCount);
+  animateCountUp('statOverdue', overdueCount);
+  animateCountUp('statTasksToday', tasksToday);
+  animateCountUp('statCompleted', completedCount);
   document.getElementById('statPayoutDue').textContent = fmtAmount(duePayoutAmt);
   document.getElementById('statPayoutDueLbl').textContent = `Payouts Due (${duePayouts.length})`;
 
