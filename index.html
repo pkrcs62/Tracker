@@ -328,6 +328,45 @@ input,select,textarea{font-family:inherit;}
 .list-card.acc-sage{border-left-color:var(--sage);}
 .list-card.acc-navy{border-left-color:var(--navy-soft);}
 .list-card-body{padding:13px 14px;}
+
+/* ---------- Compact row — dense, single/double-line list item with an
+   inline status checkbox, used for Files/Leads/Tasks lists so more of
+   the list is visible per screen instead of tall cards. ---------- */
+.row-card{
+  display:flex;align-items:center;gap:11px;
+  background:var(--paper-card);border:1px solid var(--line-soft);border-left:4px solid var(--line);
+  border-radius:12px;padding:10px 12px;margin-bottom:7px;
+  animation:cardIn .28s cubic-bezier(.22,1,.36,1) backwards;
+  transition:transform .15s cubic-bezier(.34,1.56,.64,1);
+}
+.row-card:active{transform:scale(.985);}
+.row-card:nth-child(1){animation-delay:0ms;}
+.row-card:nth-child(2){animation-delay:25ms;}
+.row-card:nth-child(3){animation-delay:50ms;}
+.row-card:nth-child(4){animation-delay:75ms;}
+.row-card:nth-child(5){animation-delay:100ms;}
+.row-card:nth-child(n+6){animation-delay:120ms;}
+.row-card.acc-red{border-left-color:var(--stamp-red);}
+.row-card.acc-gold{border-left-color:var(--gold);}
+.row-card.acc-sage{border-left-color:var(--sage);}
+.row-card.acc-navy{border-left-color:var(--navy-soft);}
+.row-check{
+  width:26px;height:26px;border-radius:8px;border:2px solid var(--line);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;cursor:pointer;
+  transition:background .15s, border-color .15s, transform .25s cubic-bezier(.34,1.7,.64,1);
+}
+.row-check.checked{background:var(--sage);border-color:var(--sage);transform:scale(1.1) rotate(-4deg);}
+.row-main{flex:1;min-width:0;cursor:pointer;}
+.row-title-line{display:flex;align-items:center;gap:7px;}
+.row-name{font-family:'Space Grotesk',-apple-system,sans-serif;font-weight:700;font-size:14px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.row-meta{display:flex;align-items:center;gap:6px;margin-top:2px;font-size:11px;color:var(--ink-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.row-meta .dot{width:3px;height:3px;border-radius:50%;background:var(--ink-faint);flex-shrink:0;}
+.row-tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;flex-shrink:0;}
+.row-tag.gold{background:var(--gold-bg);color:#8a6a1f;}
+.row-tag.red{background:var(--stamp-red-bg);color:var(--stamp-red);}
+.row-tag.sage{background:var(--sage-bg);color:var(--sage);}
+.row-tag.navy{background:rgba(30,58,95,.08);color:var(--navy-soft);}
+.row-chev{color:var(--ink-faint);font-size:15px;flex-shrink:0;}
 .lc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px;}
 .lc-name{font-size:15px;font-weight:700;color:var(--navy);margin:0;}
 .lc-id{font-size:11px;color:var(--ink-faint);margin-top:1px;}
@@ -1115,15 +1154,9 @@ html[data-boot-tab="more"] .tab-item[data-view="more"]{ color:var(--gold) !impor
           <input type="number" id="nf-amount" placeholder="0" min="0">
         </div>
       </div>
-      <div class="field-row">
-        <div class="field">
-          <label>Branch</label>
-          <input type="text" id="nf-branch" placeholder="Branch name">
-        </div>
-        <div class="field">
-          <label>Loan A/c — Last 4 digits</label>
-          <input type="text" id="nf-acctlast4" class="mono" placeholder="e.g. 4821" maxlength="4" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,4)">
-        </div>
+      <div class="field">
+        <label>Branch</label>
+        <input type="text" id="nf-branch" placeholder="Branch name">
       </div>
       <div class="field">
         <label>Documents *</label>
@@ -1591,7 +1624,6 @@ function normalizeData(){
       // from a plain textarea to a point-wise log.
       c.remarksLog = c.remark ? [{date: c.createdAt || new Date().toISOString(), text: c.remark}] : [];
     }
-    if(typeof c.acctLast4 !== 'string') c.acctLast4 = '';
   });
   DATA.tasks.forEach(t=>{ if(typeof t.progress!=='number') t.progress = t.completed ? 100 : 0; });
   DATA.leads.forEach(l=>{
@@ -1983,11 +2015,19 @@ function closeSheet(id){
 /* =========================================================
    CASE LOGIC
 ========================================================= */
+// Stamp only applies to these loan types — Gold Loan, Home Loan, Pension
+// Loan, and Loan Against Security don't carry a stamp step in this
+// branch's workflow, so the checkbox is hidden and excluded from the
+// completion check for those types.
+const STAMP_APPLICABLE_TYPES = new Set(['Personal Loan','Education Loan','Auto Loan','Other','MSME / Business Loan']);
+function caseNeedsStamp(c){
+  return STAMP_APPLICABLE_TYPES.has(c.loanType);
+}
 function caseStats(c){
   const total = c.docs.length;
   const received = c.docs.filter(d=>d.status==='Received').length;
   const allDocsDone = total===0 ? true : received===total;
-  const signsDone = c.loSign && c.bmSign && c.stamp;
+  const signsDone = c.loSign && c.bmSign && (caseNeedsStamp(c) ? c.stamp : true);
   const completed = allDocsDone && signsDone;
   return {total, received, allDocsDone, signsDone, completed};
 }
@@ -2001,6 +2041,22 @@ function casePendingItems(c){
 }
 function caseHasOverdue(c){
   return c.docs.some(d=>d.status!=='Received' && d.followupDate && daysDiff(d.followupDate)<0);
+}
+// Last 4 characters of the File/Loan A/c ID — not a separate stored
+// field, always derived from caseId so there's exactly one place the
+// account number lives.
+// Latest remark text for a file, used as the Remarks column in reports —
+// the full dated timeline doesn't fit a single table cell, so reports
+// show the most recent point.
+function allCaseRemarks(c){
+  if(!c.remarksLog || !c.remarksLog.length) return '—';
+  // All remarks, oldest first, comma-separated — not just the latest one.
+  const sorted = [...c.remarksLog].sort((a,b)=>a.date.localeCompare(b.date));
+  return sorted.map(r=>r.text).join(', ');
+}
+function caseAcctLast4(c){
+  const id = (c.caseId||'').trim();
+  return id.length > 4 ? id.slice(-4) : id;
 }
 function caseAccentClass(c){
   const st = caseStats(c);
@@ -2031,7 +2087,6 @@ async function createCaseFromSheet(){
   const sanctionDate = document.getElementById('nf-sanctiondate').value;
   const loanAmount = document.getElementById('nf-amount').value.trim();
   const branch = document.getElementById('nf-branch').value.trim();
-  const acctLast4 = document.getElementById('nf-acctlast4').value.trim();
 
   if(!name || !caseId){ showToast('Please fill Name and File ID'); return; }
 
@@ -2041,7 +2096,7 @@ async function createCaseFromSheet(){
     if(DATA.cases.some(x=>x.id!==editId && x.caseId.toLowerCase()===caseId.toLowerCase())){
       showToast('Another file already uses this ID'); return;
     }
-    Object.assign(c, {caseId, customerName:name, loanType, branch, sanctionDate, loanAmount, acctLast4});
+    Object.assign(c, {caseId, customerName:name, loanType, branch, sanctionDate, loanAmount});
     await saveData();
     closeSheet('sheetNewCase');
     showToast('File updated');
@@ -2062,7 +2117,7 @@ async function createCaseFromSheet(){
 
   const newCase = {
     id: uid('case'),
-    caseId, customerName: name, loanType, branch, sanctionDate, loanAmount, acctLast4,
+    caseId, customerName: name, loanType, branch, sanctionDate, loanAmount,
     status: 'New',
     createdAt: new Date().toISOString(),
     docs,
@@ -2089,7 +2144,7 @@ async function createCaseFromSheet(){
 
   await saveData();
   closeSheet('sheetNewCase');
-  ['nf-name','nf-caseid','nf-sanctiondate','nf-amount','nf-branch','nf-acctlast4','nf-editid'].forEach(id=>document.getElementById(id).value='');
+  ['nf-name','nf-caseid','nf-sanctiondate','nf-amount','nf-branch','nf-editid'].forEach(id=>document.getElementById(id).value='');
   DOC_PICKER_SELECTED = [];
   updateDocsSummary();
   showToast('Case created: '+caseId);
@@ -2099,7 +2154,7 @@ async function createCaseFromSheet(){
 }
 
 function openNewCaseSheet(){
-  ['nf-name','nf-caseid','nf-sanctiondate','nf-amount','nf-branch','nf-acctlast4','nf-editid'].forEach(id=>document.getElementById(id).value='');
+  ['nf-name','nf-caseid','nf-sanctiondate','nf-amount','nf-branch','nf-editid'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('caseSheetTitle').textContent = '📁 New Loan File';
   document.getElementById('caseSheetSaveBtn').textContent = 'Create File';
   document.getElementById('caseSheetSaveBtn').style.display = '';
@@ -2119,7 +2174,6 @@ function openEditCaseSheet(caseId){
   document.getElementById('nf-sanctiondate').value = c.sanctionDate || '';
   document.getElementById('nf-amount').value = c.loanAmount || '';
   document.getElementById('nf-branch').value = c.branch || '';
-  document.getElementById('nf-acctlast4').value = c.acctLast4 || '';
   document.getElementById('caseSheetTitle').textContent = '✎ Edit Loan File';
   document.getElementById('caseSheetSaveBtn').textContent = 'Save Changes';
   // Editing doesn't touch the document checklist — that's managed via
@@ -2442,30 +2496,57 @@ function renderCasesList(){
   }
   wrap.innerHTML = list.map(c=>{
     const st = caseStats(c);
-    const stamp = caseStampInfo(c);
     const pct = st.total ? Math.round((st.received/st.total)*100) : (st.completed?100:0);
+    const isComplete = st.completed;
     return `
-      <div class="list-card ${caseAccentClass(c)}" onclick="openCaseDetail('${c.id}')">
-        <div class="list-card-body">
-          <div class="lc-top">
-            <div>
-              <p class="lc-name">${escapeHtml(c.customerName)}</p>
-              <div class="lc-id mono">${escapeHtml(c.caseId)}</div>
-            </div>
-            <span class="stamp ${stamp.cls}">${stamp.label}</span>
+      <div class="row-card ${caseAccentClass(c)}">
+        <div class="row-check ${isComplete?'checked':''}" onclick="event.stopPropagation();quickCompleteCase('${c.id}')">${isComplete?'✓':''}</div>
+        <div class="row-main" onclick="openCaseDetail('${c.id}')">
+          <div class="row-title-line">
+            <span class="row-name">${escapeHtml(c.customerName)}</span>
           </div>
-          <div class="lc-meta">
-            <span class="pill navy">${escapeHtml(c.loanType||'—')}</span>
-            ${c.loanAmount ? `<span class="pill gold">${fmtAmount(c.loanAmount)}</span>` : ''}
-          </div>
-          <div class="lc-progress-track"><div class="lc-progress-fill" style="width:${pct}%;"></div></div>
-          <div class="lc-foot">
-            <span>${st.received}/${st.total} docs received · <b style="color:var(--navy);">${pct}%</b></span>
-            <span>${fmtDate(c.sanctionDate)}</span>
+          <div class="row-meta">
+            <span class="mono">${escapeHtml(caseAcctLast4(c))}</span>
+            <span class="dot"></span>
+            <span>${escapeHtml(c.loanType||'—')}</span>
+            ${c.loanAmount ? `<span class="dot"></span><span>${fmtAmount(c.loanAmount)}</span>` : ''}
+            ${!isComplete ? `<span class="dot"></span><span>${pct}%</span>` : ''}
           </div>
         </div>
+        <span class="row-tag ${isComplete?'sage':(caseHasOverdue(c)?'red':'gold')}">${isComplete?'Recd':(caseHasOverdue(c)?'Overdue':'Pending')}</span>
+        <span class="row-chev">›</span>
       </div>`;
   }).join('');
+}
+async function quickCompleteCase(caseId){
+  const c = DATA.cases.find(x=>x.id===caseId);
+  if(!c) return;
+  const st = caseStats(c);
+  if(st.completed){
+    // Already complete — the row checkbox isn't a way to silently
+    // unwind every doc/sign/stamp field, so this opens the file instead
+    // where each piece can be individually reviewed and unticked.
+    openCaseDetail(caseId);
+    return;
+  }
+  const pendingDocs = c.docs.filter(d=>d.status!=='Received').length;
+  const pendingSigns = [!c.loSign && 'FO Sign', !c.bmSign && 'BM Sign', (caseNeedsStamp(c) && !c.stamp) && 'Stamp'].filter(Boolean);
+  const parts = [];
+  if(pendingDocs) parts.push(`${pendingDocs} document${pendingDocs===1?'':'s'}`);
+  if(pendingSigns.length) parts.push(pendingSigns.join(', '));
+  if(!confirm(`Mark this file fully received? This will also mark as done: ${parts.join(' and ')}.`)) return;
+
+  c.docs.forEach(d=>{ if(d.status!=='Received'){ d.status='Received'; d.receivedDate=todayISO(); } });
+  c.loSign = true; c.loSignDate = c.loSignDate || todayISO();
+  c.bmSign = true; c.bmSignDate = c.bmSignDate || todayISO();
+  if(caseNeedsStamp(c)){ c.stamp = true; c.stampDate = c.stampDate || todayISO(); }
+
+  await saveData();
+  fireConfetti(document.querySelector(`.row-check`));
+  showToast('🎉 File marked fully received!');
+  renderCasesList();
+  refreshReminderDot();
+  if(CURRENT_VIEW==='home') renderHome();
 }
 
 /* ---------- Case detail ---------- */
@@ -2508,7 +2589,7 @@ function renderCaseDetail(caseId){
         <div><div class="k">Amount</div><div class="v">${fmtAmount(c.loanAmount)}</div></div>
         <div><div class="k">Sanction Date</div><div class="v">${fmtDate(c.sanctionDate)}</div></div>
         <div><div class="k">Branch</div><div class="v">${escapeHtml(c.branch||'—')}</div></div>
-        ${c.acctLast4 ? `<div><div class="k">Loan A/c (Last 4)</div><div class="v mono">••${escapeHtml(c.acctLast4)}</div></div>` : ''}
+        <div><div class="k">Loan A/c (Last 4)</div><div class="v mono">••${escapeHtml(caseAcctLast4(c))}</div></div>
       </div>
     </div>
 
@@ -2526,7 +2607,9 @@ function renderCaseDetail(caseId){
         <button class="btn ${c.loSign?'':'outline'} sm" style="flex:1;background:${c.loSign?'var(--sage)':''}" onclick="toggleSignFlag('${c.id}','loSign','loSignDate')">${c.loSign?'✅':'⬜'} FO Sign</button>
         <button class="btn ${c.bmSign?'':'outline'} sm" style="flex:1;background:${c.bmSign?'var(--sage)':''}" onclick="toggleSignFlag('${c.id}','bmSign','bmSignDate')">${c.bmSign?'✅':'⬜'} BM Sign</button>
       </div>
-      <button class="btn ${c.stamp?'':'outline'} sm" style="width:100%;background:${c.stamp?'var(--sage)':''}" onclick="toggleSignFlag('${c.id}','stamp','stampDate')">${c.stamp?'✅':'⬜'} Stamp</button>
+      ${caseNeedsStamp(c)
+        ? `<button class="btn ${c.stamp?'':'outline'} sm" style="width:100%;background:${c.stamp?'var(--sage)':''}" onclick="toggleSignFlag('${c.id}','stamp','stampDate')">${c.stamp?'✅':'⬜'} Stamp</button>`
+        : `<p class="small muted" style="margin:0;text-align:center;">Stamp not applicable for ${escapeHtml(c.loanType||'this loan type')}</p>`}
     </div>
 
     <div class="card">
@@ -3705,23 +3788,23 @@ function openReport(key){
 
   if(key==='acctpendency'){
     const rows = DATA.cases.map(c=>({c, pending: casePendingItems(c)})).filter(r=>r.pending.length>0);
-    CURRENT_REPORT = {title:def.label, headers:['File ID','Customer','Sanction Date','Amount','Stage','Pending Items'],
-      rows: rows.map(({c,pending})=>[c.caseId,c.customerName,fmtDate(c.sanctionDate),fmtAmount(c.loanAmount),c.status,pending.join(', ')])};
+    CURRENT_REPORT = {title:def.label, headers:['File ID','Customer','Sanction Date','Amount','Stage','Pending Items','Remarks'],
+      rows: rows.map(({c,pending})=>[c.caseId,c.customerName,fmtDate(c.sanctionDate),fmtAmount(c.loanAmount),c.status,pending.join(', '),allCaseRemarks(c)])};
     body.innerHTML = rows.length ? rows.map(({c,pending})=>reportCardHtml(c.customerName, c.caseId, [
       ['Sanction',fmtDate(c.sanctionDate)],['Amount',fmtAmount(c.loanAmount)],['Stage',c.status]
-    ], pending.join(', '))).join('') : emptyReportHtml();
+    ], pending.join(', ') + (allCaseRemarks(c)!=='—' ? ' · '+allCaseRemarks(c) : ''))).join('') : emptyReportHtml();
   }
   else if(key==='overdue'){
     let items=[];
     DATA.cases.forEach(c=>c.docs.forEach(d=>{ if(d.status!=='Received' && d.followupDate && daysDiff(d.followupDate)<0) items.push({c,d}); }));
-    CURRENT_REPORT = {title:def.label, headers:['File ID','Customer','Document','Follow-up Date','Days Overdue'],
-      rows: items.map(({c,d})=>[c.caseId,c.customerName,d.name,fmtDate(d.followupDate),Math.abs(daysDiff(d.followupDate))])};
+    CURRENT_REPORT = {title:def.label, headers:['File ID','Customer','Document','Follow-up Date','Days Overdue','Remarks'],
+      rows: items.map(({c,d})=>[c.caseId,c.customerName,d.name,fmtDate(d.followupDate),Math.abs(daysDiff(d.followupDate)),allCaseRemarks(c)])};
     body.innerHTML = items.length ? items.map(({c,d})=>reportCardHtml(c.customerName, c.caseId, [['Document',d.name],['Follow-up',fmtDate(d.followupDate)]], Math.abs(daysDiff(d.followupDate))+' days overdue')).join('') : emptyReportHtml();
   }
   else if(key==='completed'){
     const rows = DATA.cases.filter(c=>caseStats(c).completed);
-    CURRENT_REPORT = {title:def.label, headers:['File ID','Customer','Loan Type','Amount','Sanction Date'],
-      rows: rows.map(c=>[c.caseId,c.customerName,c.loanType,fmtAmount(c.loanAmount),fmtDate(c.sanctionDate)])};
+    CURRENT_REPORT = {title:def.label, headers:['File ID','Customer','Loan Type','Amount','Sanction Date','Remarks'],
+      rows: rows.map(c=>[c.caseId,c.customerName,c.loanType,fmtAmount(c.loanAmount),fmtDate(c.sanctionDate),allCaseRemarks(c)])};
     body.innerHTML = rows.length ? rows.map(c=>reportCardHtml(c.customerName, c.caseId, [['Loan Type',c.loanType],['Amount',fmtAmount(c.loanAmount)],['Sanction',fmtDate(c.sanctionDate)]], '')).join('') : emptyReportHtml();
   }
   else if(key==='dailytasks'){
@@ -3812,6 +3895,20 @@ function ensurePdfLibs(){
   })();
   return PDF_LIBS_LOADING;
 }
+// Guarantees a minimum column width (in points) for any header that
+// looks like a currency/amount column, so jsPDF-AutoTable never
+// squeezes a rupee figure down to fit a wide free-text column next to
+// it (e.g. "Pending Items" or "Remarks") — that squeeze was the cause
+// of amounts showing up visibly truncated in exported PDFs.
+function buildAmountColumnStyles(headers){
+  const styles = {};
+  headers.forEach((h, i)=>{
+    if(/amount|amt/i.test(h)){
+      styles[i] = { cellWidth: 62, halign: 'right' };
+    }
+  });
+  return styles;
+}
 async function exportReportPdf(){
   if(!CURRENT_REPORT.rows.length){ showToast('No data to export'); return; }
   showToast('Preparing PDF…');
@@ -3842,13 +3939,18 @@ async function exportReportPdf(){
       startY: big ? 84 : 70,
       theme: 'grid',
       styles: big
-        ? { fontSize: 13, cellPadding: 10, lineColor: [180,180,180], lineWidth: 0.6, textColor: [20,20,20], valign:'middle' }
-        : { fontSize: 8.5, cellPadding: 5, lineColor: [180,180,180], lineWidth: 0.5, textColor: [30,30,30] },
+        ? { fontSize: 13, cellPadding: 10, lineColor: [180,180,180], lineWidth: 0.6, textColor: [20,20,20], valign:'middle', overflow: 'linebreak' }
+        : { fontSize: 8.5, cellPadding: 5, lineColor: [180,180,180], lineWidth: 0.5, textColor: [30,30,30], overflow: 'linebreak' },
       headStyles: big
         ? { fillColor: [27,42,60], textColor: [255,255,255], fontStyle: 'bold', fontSize: 13.5, lineColor: [180,180,180], lineWidth: 0.6 }
         : { fillColor: [30,20,70], textColor: [255,255,255], fontStyle: 'bold', lineColor: [180,180,180], lineWidth: 0.5 },
       alternateRowStyles: { fillColor: [245,245,250] },
-      margin: { left: 30, right: 30 }
+      margin: { left: 30, right: 30 },
+      // Amount/Loan Amt/Due columns get a guaranteed minimum width so
+      // rupee figures never get clipped — autoTable was previously
+      // squeezing them down to fit wide free-text columns like Pending
+      // Items or Remarks, which is what caused truncated amounts.
+      columnStyles: buildAmountColumnStyles(CURRENT_REPORT.headers)
     });
 
     const filename = (CURRENT_REPORT.title||'report').replace(/\s+/g,'_')+'.pdf';
