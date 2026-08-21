@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#1E3A5F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Leads">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Leads</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700;800&family=Sora:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --navy:#1E3A5F; --navy-deep:#16294A; --navy-soft:#2F4E78;
+  --paper:#F3F5F8; --paper-dim:#E9EDF3; --paper-card:#FFFFFF;
+  --ink:#1C2530; --ink-soft:#4E5763; --ink-faint:#6B7280;
+  --stamp-red:#B23B2E; --stamp-red-bg:#FBE7E3;
+  --sage:#357A57; --sage-bg:#E1F0E7;
+  --gold:#A87F2E; --gold-bg:#FBF1DB;
+  --line:#C9CDD6; --line-soft:#DDE1E8;
+  --shadow-card:0 1px 2px rgba(20,30,48,.06), 0 4px 10px rgba(20,30,48,.10);
+  --shadow-float:0 4px 12px rgba(20,30,48,.16), 0 12px 32px rgba(20,30,48,.20);
+  --radius:14px; --radius-sm:10px;
+  --safe-top:env(safe-area-inset-top,0px); --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);}
+body{font-family:'Sora',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;line-height:1.45;padding-bottom:calc(24px + var(--safe-bottom));}
+h1,h2,h3{font-family:'Space Grotesk',-apple-system,sans-serif;font-weight:700;letter-spacing:-.01em;margin:0;}
+button{font-family:inherit;}
+input,select,textarea{font-family:inherit;}
+.hidden{display:none !important;}
+.mono{font-family:'Space Mono','SF Mono',SFMono-Regular,Consolas,Menlo,monospace;letter-spacing:.2px;}
+.small{font-size:12px;}
+.muted{color:var(--ink-faint);}
+.mt-8{margin-top:8px;}
+
+/* ---------- Topbar ---------- */
+.topbar{
+  position:sticky;top:0;z-index:40;background:var(--navy);color:var(--paper);
+  padding:calc(14px + var(--safe-top)) 16px 14px;display:flex;align-items:center;gap:11px;
+  box-shadow:0 2px 10px rgba(0,0,0,.18);
+}
+.topbar .brand-mark{width:34px;height:34px;border-radius:9px;flex-shrink:0;}
+.topbar h1{font-size:17px;color:#fff;}
+.topbar .sub{font-size:11.5px;color:#AEBBCB;margin-top:1px;}
+.topbar .right{margin-left:auto;}
+.icon-btn{
+  background:rgba(255,255,255,.1);border:none;color:#fff;width:38px;height:38px;border-radius:10px;
+  font-size:17px;display:flex;align-items:center;justify-content:center;
+}
+
+/* ---------- Page ---------- */
+.page{max-width:640px;margin:0 auto;padding:16px;}
+.page-head{margin-bottom:14px;}
+.page-head p{margin:2px 0 0;font-size:12.5px;color:var(--ink-faint);}
+
+/* ---------- GPay-style search bar ---------- */
+.searchbar{
+  display:flex;align-items:center;gap:10px;background:#F1F3F4;border:none;
+  border-radius:999px;padding:13px 16px;margin-bottom:16px;box-shadow:none;
+}
+.searchbar span{color:#5F6368;font-size:15px;}
+.searchbar input{border:none;outline:none;background:none;flex:1;font-size:14.5px;color:var(--ink);}
+.searchbar input::placeholder{color:#80868B;}
+
+/* ---------- GPay-style bucket rows (entry page) ---------- */
+.bucket-list{display:flex;flex-direction:column;gap:9px;}
+.bucket-row{
+  display:flex;align-items:center;gap:13px;background:#fff;border-radius:16px;
+  padding:12px 14px;box-shadow:0 1px 2px rgba(60,64,67,.08),0 1px 3px rgba(60,64,67,.08);
+}
+.bucket-row:active{transform:scale(.985);}
+.b-icon{
+  width:42px;height:42px;border-radius:12px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:19px;
+}
+.b-icon.blue{background:#E8F0FE;color:#1A73E8;}
+.b-icon.gold{background:var(--gold-bg);color:#9a7526;}
+.b-icon.red{background:var(--stamp-red-bg);color:var(--stamp-red);}
+.b-icon.sage{background:var(--sage-bg);color:var(--sage);}
+.b-icon.grey{background:#F1F3F4;color:#5F6368;}
+.b-icon.navy{background:#E8EEF7;color:var(--navy);}
+.b-label{flex:1;min-width:0;}
+.b-label .b-name{font-weight:700;font-size:14.5px;color:#202124;}
+.b-label .b-sub{font-size:11.5px;color:#5F6368;margin-top:1px;}
+.b-count{
+  font-size:12px;font-weight:700;color:#fff;background:var(--navy);min-width:23px;height:23px;
+  border-radius:12px;display:flex;align-items:center;justify-content:center;padding:0 7px;flex-shrink:0;
+}
+.b-count.zero{background:#F1F3F4;color:#9AA0A6;}
+.b-count.red{background:var(--stamp-red);}
+.b-chev{color:#9AA0A6;font-size:18px;flex-shrink:0;}
+.entry-search-results .list-card:first-child{margin-top:2px;}
+
+/* ---------- Today-remark line on a card ---------- */
+.today-remark{margin:8px 0 0;font-size:12.5px;font-weight:700;color:var(--sage);}
+.today-remark b{font-weight:700;}
+
+/* ---------- Product groups (collapsible) inside a bucket sheet ---------- */
+.prod-group{margin-bottom:12px;}
+.prod-group-head{
+  display:flex;align-items:center;gap:9px;background:#fff;border-radius:12px;padding:11px 12px;
+  box-shadow:0 1px 2px rgba(60,64,67,.08);cursor:pointer;
+}
+.prod-group-head .pg-chev{font-size:12px;color:#9AA0A6;transition:transform .15s ease;flex-shrink:0;}
+.prod-group.open .prod-group-head .pg-chev{transform:rotate(90deg);}
+.prod-group-head .pg-icon{font-size:15px;flex-shrink:0;}
+.prod-group-head .pg-name{flex:1;font-weight:700;font-size:13.5px;color:#202124;}
+.prod-group-head .pg-count{
+  font-size:11.5px;font-weight:700;color:#5F6368;background:#F1F3F4;border-radius:10px;
+  padding:2px 8px;flex-shrink:0;
+}
+.prod-group-head .pg-export{
+  border:1px solid #D2E3FC;background:#E8F0FE;font-size:11px;font-weight:700;color:#1A73E8;
+  padding:5px 10px;border-radius:8px;flex-shrink:0;line-height:1;display:inline-flex;align-items:center;gap:4px;
+}
+.prod-group-body{padding-top:9px;}
+.prod-group-body.hidden{display:none;}
+
+/* ---------- Print root (offscreen render target for PDF export) ---------- */
+.print-root{position:fixed;left:-9999px;top:0;width:800px;background:#fff;z-index:-1;}
+
+/* ---------- Lead cards ---------- */
+.list-card{
+  background:var(--paper-card);border-radius:var(--radius);margin-bottom:10px;box-shadow:var(--shadow-card);
+  border-left:4px solid var(--line);overflow:hidden;
+}
+.list-card.acc-gold{border-left-color:var(--gold);}
+.list-card.acc-sage{border-left-color:var(--sage);}
+.list-card.acc-red{border-left-color:var(--stamp-red);}
+.list-card-body{padding:13px 14px;}
+.lc-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+.lc-name{font-family:'Space Grotesk',-apple-system,sans-serif;font-weight:700;font-size:15px;margin:0;color:var(--ink);}
+.lc-id{font-size:12px;color:var(--ink-faint);margin-top:2px;}
+.lc-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;}
+.pill{font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;}
+.pill.navy{background:var(--navy-soft);color:#fff;}
+.pill.gold{background:var(--gold-bg);color:#9a7526;}
+.pill.sage{background:var(--sage-bg);color:var(--sage);}
+.pill.red{background:var(--stamp-red-bg);color:var(--stamp-red);}
+.lc-foot{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap;}
+.btn{
+  border:none;border-radius:10px;padding:10px 14px;font-size:13px;font-weight:700;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+}
+.btn.gold{background:var(--navy);color:#fff;}
+.btn.outline{background:var(--paper);border:1.4px solid var(--line);color:var(--ink-soft);}
+.btn.ghost{background:none;color:var(--ink-faint);padding:8px 10px;}
+.btn.danger{background:var(--stamp-red);color:#fff;}
+.btn.sm{padding:8px 12px;font-size:12px;flex:1;}
+.btn:active{transform:scale(.97);}
+
+/* ---------- Timeline ---------- */
+.timeline-entry{
+  border-left:2px solid var(--line);padding:2px 0 14px 14px;margin-left:5px;position:relative;
+}
+.timeline-entry::before{
+  content:'';position:absolute;left:-6px;top:3px;width:10px;height:10px;border-radius:50%;background:var(--gold);border:2px solid var(--paper-card);
+}
+.timeline-entry:last-child{padding-bottom:0;}
+.timeline-date{font-size:11px;font-weight:700;color:var(--ink-faint);}
+.timeline-text{font-size:13.5px;margin-top:3px;color:var(--ink);}
+
+/* ---------- Sheets ---------- */
+.sheet-overlay{
+  position:fixed;inset:0;background:rgba(18,30,44,.5);z-index:60;display:none;align-items:flex-end;justify-content:center;
+}
+.sheet-overlay.active{display:flex;}
+.sheet{
+  background:var(--paper);width:100%;max-width:640px;border-radius:20px 20px 0 0;
+  max-height:90vh;overflow-y:auto;padding-bottom:calc(18px + var(--safe-bottom));
+  animation:sheetUp .22s ease-out;
+}
+@keyframes sheetUp{from{transform:translateY(24px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.sheet-handle{width:38px;height:4px;background:var(--line);border-radius:3px;margin:10px auto 4px;}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;padding:8px 18px 12px;border-bottom:1px solid var(--line-soft);}
+.sheet-close{background:none;border:none;font-size:17px;color:var(--ink-faint);padding:4px 8px;}
+.sheet-body{padding:16px 18px;}
+.sheet-foot{padding:12px 18px 4px;display:flex;gap:10px;}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:12px;font-weight:700;color:var(--ink-soft);margin-bottom:6px;}
+.field input,.field select,.field textarea{
+  width:100%;padding:11px 12px;border:1.4px solid var(--line);border-radius:10px;font-size:14px;color:var(--ink);
+  background:var(--paper-card);outline:none;
+}
+.field textarea{resize:vertical;}
+.field-row{display:flex;gap:10px;}
+.field-row .field{flex:1;}
+
+/* ---------- Empty state ---------- */
+.empty{text-align:center;padding:50px 20px;color:var(--ink-faint);}
+.empty .icon{font-size:36px;margin-bottom:8px;}
+.empty .title{font-weight:700;color:var(--ink-soft);}
+.empty .desc{font-size:12.5px;margin-top:4px;}
+
+/* ---------- FAB ---------- */
+.fab{
+  position:fixed;right:20px;bottom:calc(20px + var(--safe-bottom));z-index:35;
+  width:56px;height:56px;border-radius:16px;background:var(--navy);color:#fff;border:none;
+  box-shadow:var(--shadow-float);font-size:24px;display:flex;align-items:center;justify-content:center;
+}
+.fab:active{transform:scale(.94);}
+
+/* ---------- Toast ---------- */
+#toast{
+  position:fixed;left:50%;bottom:calc(90px + var(--safe-bottom));transform:translateX(-50%) translateY(20px);
+  background:var(--navy-deep);color:#fff;padding:11px 18px;border-radius:11px;font-size:13px;font-weight:600;
+  z-index:80;opacity:0;transition:all .25s ease;box-shadow:var(--shadow-float);max-width:86vw;text-align:center;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ---------- Sync pill ---------- */
+.sync-pill{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:999px;background:rgba(255,255,255,.12);color:#AEBBCB;}
+.sync-pill.on{background:rgba(95,122,84,.35);color:#CDE0C4;}
+
+/* ---------- Call / WhatsApp action row ---------- */
+.lc-actions{display:flex;gap:8px;margin-top:10px;}
+.act-btn{
+  flex:1;text-align:center;padding:9px 10px;border-radius:10px;font-size:12.5px;font-weight:700;
+  text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:5px;
+}
+.act-btn.call{background:#E8F0FE;color:#1A73E8;}
+.act-btn.wa{background:#E5F9EA;color:#128C4A;}
+
+/* ---------- NPA/SMA category badges ---------- */
+.pill.cat-sma{background:var(--gold-bg);color:#9a7526;}
+.pill.cat-likely{background:#FFE8CC;color:#B15C00;}
+.pill.cat-npa{background:#4A1414;color:#fff;}
+.npa-row-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.npa-row-head .searchbar{flex:1;margin-bottom:0;}
+.npa-head-btn{
+  border:none;background:#F1F3F4;color:#3C4043;width:42px;height:42px;border-radius:12px;flex-shrink:0;
+  font-size:17px;display:flex;align-items:center;justify-content:center;
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <img src="icon-192.png" class="brand-mark" alt="Leads" onerror="this.style.display='none'">
+  <div>
+    <h1>Leads</h1>
+    <div class="sub">Lead follow-up tracker</div>
+  </div>
+  <div class="right" style="display:flex;align-items:center;gap:8px;">
+    <span class="sync-pill" id="syncPill">Connecting…</span>
+    <button class="icon-btn" onclick="exportAllPdf()" aria-label="Print full report (all tabs)">🖨️</button>
+    <button class="icon-btn" onclick="manualSync()" aria-label="Sync">🔄</button>
+  </div>
+</div>
+<div class="print-root" id="printRoot"></div>
+
+<div class="page">
+  <div class="searchbar">
+    <span>🔍</span>
+    <input type="text" id="entrySearch" placeholder="Search name, mobile or loan type..." oninput="onEntrySearch()">
+  </div>
+
+  <div id="entrySearchResults" class="entry-search-results hidden"></div>
+  <div id="entryRows" class="bucket-list"></div>
+</div>
+
+<button class="fab" onclick="openNewLeadSheet()" aria-label="Add lead">➕</button>
+<div id="toast"></div>
+
+<!-- Add Lead -->
+<div class="sheet-overlay" id="sheetNewLead">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h3>🤝 Add Lead</h3><button class="sheet-close" onclick="closeSheet('sheetNewLead')">✕</button></div>
+    <div class="sheet-body">
+      <div class="field">
+        <label>Name *</label>
+        <input type="text" id="ld-name" placeholder="Customer full name">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Mobile Number *</label>
+          <input type="tel" id="ld-mobile" placeholder="10-digit mobile" maxlength="15">
+        </div>
+        <div class="field">
+          <label>Loan Type *</label>
+          <select id="ld-loantype"></select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Next Follow-up Date</label>
+        <input type="date" id="ld-followup">
+      </div>
+      <div class="field">
+        <label>First Remark</label>
+        <textarea id="ld-remark" placeholder="What was discussed, what's needed next..." style="min-height:80px;"></textarea>
+      </div>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn gold" style="flex:1;" onclick="createLeadFromSheet()">Add Lead</button>
+    </div>
+  </div>
+</div>
+
+<!-- Bucket List (Today / Overdue / Future / Converted / Not Eligible / All) -->
+<div class="sheet-overlay" id="sheetBucketList" style="z-index:61;">
+  <div class="sheet" style="max-height:92vh;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h3 id="bucketTitle">Leads</h3><button class="sheet-close" onclick="closeSheet('sheetBucketList')">✕</button></div>
+    <div class="sheet-body" style="padding-top:12px;">
+      <div class="searchbar" style="margin-bottom:12px;">
+        <span>🔍</span>
+        <input type="text" id="bucketSearch" placeholder="Search within this list..." oninput="renderBucketList()">
+      </div>
+      <div id="bucketLeadsList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Lead Detail -->
+<div class="sheet-overlay" id="sheetLeadDetail" style="z-index:62;">
+  <div class="sheet" style="max-height:92vh;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h3 id="ldTitle">Lead</h3><button class="sheet-close" onclick="closeSheet('sheetLeadDetail')">✕</button></div>
+    <div class="sheet-body" id="ldBody"></div>
+  </div>
+</div>
+
+<!-- Not Eligible -->
+<div class="sheet-overlay" id="sheetNotEligible">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h3>🚫 Mark Not Eligible</h3><button class="sheet-close" onclick="closeSheet('sheetNotEligible')">✕</button></div>
+    <div class="sheet-body">
+      <input type="hidden" id="ne-leadid">
+      <div class="field">
+        <label>Reason *</label>
+        <textarea id="ne-reason" placeholder="e.g. Low CIBIL, income mismatch, not interested..." style="min-height:80px;"></textarea>
+      </div>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn danger" style="flex:1;" onclick="confirmNotEligible()">Mark Not Eligible</button>
+    </div>
+  </div>
+</div>
+
+<!-- NPA / SMA List -->
+<div class="sheet-overlay" id="sheetNpaList" style="z-index:61;">
+  <div class="sheet" style="max-height:92vh;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h3>⚠️ NPA / SMA Followup</h3><button class="sheet-close" onclick="closeSheet('sheetNpaList')">✕</button></div>
+    <div class="sheet-body" style="padding-top:12px;">
+      <div class="npa-row-head">
+        <div class="searchbar">
+          <span>🔍</span>
+          <input type="text" id="npaSearch" placeholder="Search account, name..." oninput="renderNpaList()">
+        </div>
+        <button class="npa-head-btn" onclick="openAddNpaSheet()" aria-label="Add account">➕</button>
+        <button class="npa-head-btn" onclick="exportNpaPdf()" aria-label="Export as PDF">⬇️</button>
+      </div>
+      <div id="npaLeadsList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Add NPA/SMA Account -->
+<div class="sheet-overlay" id="sheetAddNpa" style="z-index:62;">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h3>⚠️ Add NPA/SMA Account</h3><button class="sheet-close" onclick="closeSheet('sheetAddNpa')">✕</button></div>
+    <div class="sheet-body">
+      <div class="field-row">
+        <div class="field">
+          <label>Loan Account No *</label>
+          <input type="text" id="npa-accno" placeholder="e.g. 38xxxxxxxxx">
+        </div>
+        <div class="field">
+          <label>Borrower Name *</label>
+          <input type="text" id="npa-name" placeholder="Full name">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Mobile Number *</label>
+          <input type="tel" id="npa-mobile" placeholder="10-digit mobile" maxlength="15">
+        </div>
+        <div class="field">
+          <label>Overdue Amount (₹) *</label>
+          <input type="number" id="npa-amount" placeholder="0">
+        </div>
+      </div>
+      <div class="field">
+        <label>Category *</label>
+        <select id="npa-category">
+          <option value="SMA">SMA</option>
+          <option value="Likely NPA">Likely NPA</option>
+          <option value="NPA">NPA</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>First Remark</label>
+        <textarea id="npa-remark" placeholder="What was discussed, what's needed next..." style="min-height:70px;"></textarea>
+      </div>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn gold" style="flex:1;" onclick="createNpaFromSheet()">Add Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- NPA/SMA Detail -->
+<div class="sheet-overlay" id="sheetNpaDetail" style="z-index:63;">
+  <div class="sheet" style="max-height:92vh;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h3 id="npaTitle">Account</h3><button class="sheet-close" onclick="closeSheet('sheetNpaDetail')">✕</button></div>
+    <div class="sheet-body" id="npaBody"></div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   CALL DESK — standalone lead follow-up app.
+   Shares the SAME Supabase row ("loan_tracker_state", id
+   'main') as the main Loan Tracker app, but only ever reads
+   and writes the `.leads` slice of that JSON blob. Before
+   every save it re-fetches the freshest row and merges its
+   leads change into it, so it doesn't clobber a Case/Task/
+   Payout edit that happened in the main app in the meantime.
+========================================================= */
+const DB_TABLE = 'loan_tracker_state';
+const DEFAULT_DB_CFG = {
+  url: 'https://fxscwgwumtmsvmntkynf.supabase.co',
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ4c2N3Z3d1bXRtc3ZtbnRreW5mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0MTA2MTEsImV4cCI6MjEwMTk4NjYxMX0.ILjj_s5zohUY5HEQU_shC7teUgFKENtTCipPaNDaULw',
+  workspace: 'main'
+};
+let SB = null;
+let LEADS = [];               // local working copy of DATA.leads
+let NPA_ACCOUNTS = [];        // local working copy of DATA.npaAccounts
+let LAST_KNOWN_ROW = null;    // the full remote JSON blob, kept so saves can merge cleanly
+let CONNECTED = false;
+let REALTIME_CHANNEL = null;
+
+const LEAD_LOAN_TYPES = ['Personal Loan','Pension Loan','Gold Loan','Car Loan','Home Loan','Other Loan'];
+const LEAD_TYPE_ICON = {'Personal Loan':'💳','Pension Loan':'🧓','Gold Loan':'🪙','Car Loan':'🚗','Home Loan':'🏠','Other Loan':'📄'};
+let LEAD_FILTER = 'pending';
+
+function uid(prefix){ return prefix+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+function todayISO(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function daysDiff(iso){ if(!iso) return null; const a=new Date(todayISO()), b=new Date(iso); return Math.round((b-a)/86400000); }
+function fmtDate(iso){ if(!iso) return '—'; const d=new Date(iso+'T00:00:00'); return d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}); }
+function fmtDateTime(iso){ if(!iso) return '—'; const d=new Date(iso); return d.toLocaleDateString('en-IN',{day:'numeric',month:'short'})+' · '+d.toLocaleTimeString('en-IN',{hour:'numeric',minute:'2-digit'}); }
+function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function openSheet(id){ document.getElementById(id).classList.add('active'); }
+function closeSheet(id){ document.getElementById(id).classList.remove('active'); }
+let toastTimer=null;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 2400);
+}
+
+/* ---------- Supabase ---------- */
+function initSupabase(){
+  try{
+    SB = window.supabase.createClient(DEFAULT_DB_CFG.url, DEFAULT_DB_CFG.anonKey, { realtime:{ params:{ eventsPerSecond:5 } } });
+  }catch(e){ console.error('Supabase init failed', e); SB = null; }
+  updateSyncPill();
+}
+function updateSyncPill(){
+  const pill = document.getElementById('syncPill');
+  pill.textContent = CONNECTED ? 'Synced' : 'Offline / retry';
+  pill.classList.toggle('on', CONNECTED);
+}
+async function loadLeads(){
+  if(!SB){ showToast('Database not available'); return; }
+  try{
+    const { data, error } = await SB.from(DB_TABLE).select('data').eq('id', DEFAULT_DB_CFG.workspace).maybeSingle();
+    if(error) throw error;
+    LAST_KNOWN_ROW = (data && data.data) ? data.data : { leads: [] };
+    if(!Array.isArray(LAST_KNOWN_ROW.leads)) LAST_KNOWN_ROW.leads = [];
+    if(!Array.isArray(LAST_KNOWN_ROW.npaAccounts)) LAST_KNOWN_ROW.npaAccounts = [];
+    normalizeLeads(LAST_KNOWN_ROW.leads);
+    normalizeNpaAccounts(LAST_KNOWN_ROW.npaAccounts);
+    LEADS = LAST_KNOWN_ROW.leads;
+    NPA_ACCOUNTS = LAST_KNOWN_ROW.npaAccounts;
+    CONNECTED = true;
+  }catch(e){
+    console.error('Load failed', e);
+    CONNECTED = false;
+    showToast('⚠️ Could not reach database');
+  }
+  updateSyncPill();
+  renderAll();
+}
+function normalizeLeads(leads){
+  leads.forEach(l=>{
+    if(!l.status) l.status = l.converted ? 'converted' : 'pending';
+    if(!l.notEligibleReason) l.notEligibleReason = '';
+    if(!Array.isArray(l.remarksLog)) l.remarksLog = l.remark ? [{date:l.createdAt||new Date().toISOString(), text:l.remark}] : [];
+  });
+}
+function normalizeNpaAccounts(accounts){
+  accounts.forEach(a=>{
+    if(!a.status) a.status = 'open';
+    if(!a.category) a.category = 'SMA';
+    if(!Array.isArray(a.remarksLog)) a.remarksLog = [];
+  });
+}
+async function saveLeads(){
+  if(!SB){ showToast('Database not available — change not saved'); return false; }
+  try{
+    // Re-fetch the freshest row right before writing, then splice in only
+    // our leads — this is what keeps a concurrent Case/Task edit in the
+    // main app from being overwritten by a stale Call Desk save.
+    const { data, error } = await SB.from(DB_TABLE).select('data').eq('id', DEFAULT_DB_CFG.workspace).maybeSingle();
+    if(error) throw error;
+    const freshRow = (data && data.data) ? data.data : { leads: [] };
+    freshRow.leads = LEADS;
+    const { error: upErr } = await SB.from(DB_TABLE).upsert({ id: DEFAULT_DB_CFG.workspace, data: freshRow, updated_at: new Date().toISOString() });
+    if(upErr) throw upErr;
+    LAST_KNOWN_ROW = freshRow;
+    CONNECTED = true;
+  }catch(e){
+    console.error('Save failed', e);
+    CONNECTED = false;
+    showToast('⚠️ Saved on screen, but sync failed — will retry');
+    updateSyncPill();
+    return false;
+  }
+  updateSyncPill();
+  return true;
+}
+async function saveNpaAccounts(){
+  if(!SB){ showToast('Database not available — change not saved'); return false; }
+  try{
+    const { data, error } = await SB.from(DB_TABLE).select('data').eq('id', DEFAULT_DB_CFG.workspace).maybeSingle();
+    if(error) throw error;
+    const freshRow = (data && data.data) ? data.data : { leads: [] };
+    freshRow.npaAccounts = NPA_ACCOUNTS;
+    const { error: upErr } = await SB.from(DB_TABLE).upsert({ id: DEFAULT_DB_CFG.workspace, data: freshRow, updated_at: new Date().toISOString() });
+    if(upErr) throw upErr;
+    LAST_KNOWN_ROW = freshRow;
+    CONNECTED = true;
+  }catch(e){
+    console.error('Save failed', e);
+    CONNECTED = false;
+    showToast('⚠️ Saved on screen, but sync failed — will retry');
+    updateSyncPill();
+    return false;
+  }
+  updateSyncPill();
+  return true;
+}
+function subscribeRealtime(){
+  if(!SB) return;
+  if(REALTIME_CHANNEL){ SB.removeChannel(REALTIME_CHANNEL); REALTIME_CHANNEL = null; }
+  REALTIME_CHANNEL = SB.channel('calldesk-'+DEFAULT_DB_CFG.workspace)
+    .on('postgres_changes',
+      { event:'UPDATE', schema:'public', table:DB_TABLE, filter:`id=eq.${DEFAULT_DB_CFG.workspace}` },
+      (payload)=>{
+        const incoming = payload.new && payload.new.data;
+        if(!incoming) return;
+        let changed = false;
+        if(Array.isArray(incoming.leads) && JSON.stringify(incoming.leads) !== JSON.stringify(LEADS)){
+          normalizeLeads(incoming.leads);
+          LEADS = incoming.leads;
+          changed = true;
+        }
+        if(Array.isArray(incoming.npaAccounts) && JSON.stringify(incoming.npaAccounts) !== JSON.stringify(NPA_ACCOUNTS)){
+          normalizeNpaAccounts(incoming.npaAccounts);
+          NPA_ACCOUNTS = incoming.npaAccounts;
+          changed = true;
+        }
+        if(!changed) return;
+        LAST_KNOWN_ROW = incoming;
+        showToast('🔄 Updated — synced from another device');
+        renderAll();
+      })
+    .subscribe(()=>{});
+}
+async function manualSync(){
+  showToast('Syncing…');
+  await loadLeads();
+  showToast(CONNECTED ? 'Synced' : 'Sync failed');
+}
+
+/* ---------- Lead list rendering ---------- */
+// Buckets, per the redesign notes: Today/Overdue/Future are derived purely
+// from followupDate vs today's date — no new stored field. Pending leads
+// with no followupDate are grouped under Future (not yet due).
+function bucketOf(l, today){
+  if(l.status==='converted') return 'converted';
+  if(l.status==='not_eligible') return 'noteligible';
+  if(l.status==='pending'){
+    if(l.followupDate === today) return 'today';
+    if(l.followupDate && l.followupDate < today) return 'overdue';
+    return 'future';
+  }
+  return 'all';
+}
+function leadMatchesBucket(l, key, today){
+  if(key==='all') return true;
+  return bucketOf(l, today)===key;
+}
+const BUCKET_DEFS = [
+  {key:'new',        label:'New Lead',    sub:'Add a fresh lead',        icon:'➕', color:'blue'},
+  {key:'today',      label:'Today',       sub:'Follow-up due today',     icon:'📌', color:'blue'},
+  {key:'overdue',    label:'Overdue',     sub:'Missed follow-up',        icon:'⛔', color:'red'},
+  {key:'future',     label:'Future',      sub:'Upcoming follow-ups',     icon:'🗓️', color:'gold'},
+  {key:'converted',  label:'Converted',   sub:'Closed as won',           icon:'✅', color:'sage'},
+  {key:'noteligible',label:'Not Eligible',sub:'Closed as not eligible',  icon:'🚫', color:'grey'},
+  {key:'all',        label:'All Leads',   sub:'Everything in one list',  icon:'🤝', color:'navy'}
+];
+
+function renderAll(){
+  renderEntry();
+  if(document.getElementById('sheetBucketList').classList.contains('active')) renderBucketList();
+  if(document.getElementById('sheetNpaList').classList.contains('active')) renderNpaList();
+}
+
+function renderEntry(){
+  const today = todayISO();
+  const counts = {new:0, today:0, overdue:0, future:0, converted:0, noteligible:0, all:LEADS.length};
+  LEADS.forEach(l=>{ const b = bucketOf(l, today); if(counts[b]!==undefined) counts[b]++; });
+
+  const rowsHtml = BUCKET_DEFS.map(b=>{
+    if(b.key==='new'){
+      return `
+      <div class="bucket-row" onclick="openNewLeadSheet()">
+        <div class="b-icon ${b.color}">${b.icon}</div>
+        <div class="b-label"><div class="b-name">${b.label}</div><div class="b-sub">${b.sub}</div></div>
+        <div class="b-chev">›</div>
+      </div>`;
+    }
+    const n = counts[b.key] || 0;
+    return `
+    <div class="bucket-row" onclick="openBucketSheet('${b.key}')">
+      <div class="b-icon ${b.color}">${b.icon}</div>
+      <div class="b-label"><div class="b-name">${b.label}</div><div class="b-sub">${b.sub}</div></div>
+      <div class="b-count ${n===0?'zero':(b.key==='overdue'?'red':'')}">${n}</div>
+      <div class="b-chev">›</div>
+    </div>`;
+  }).join('');
+
+  const npaOpenCount = NPA_ACCOUNTS.filter(a=>a.status==='open').length;
+  const npaRowHtml = `
+    <div class="bucket-row" onclick="openNpaSheet()">
+      <div class="b-icon red">⚠️</div>
+      <div class="b-label"><div class="b-name">NPA / SMA Followup</div><div class="b-sub">Overdue loan accounts</div></div>
+      <div class="b-count ${npaOpenCount===0?'zero':'red'}">${npaOpenCount}</div>
+      <div class="b-chev">›</div>
+    </div>`;
+
+  document.getElementById('entryRows').innerHTML = rowsHtml + npaRowHtml;
+}
+
+function onEntrySearch(){
+  const q = (document.getElementById('entrySearch').value||'').toLowerCase().trim();
+  const rowsEl = document.getElementById('entryRows');
+  const resEl = document.getElementById('entrySearchResults');
+  if(!q){
+    resEl.classList.add('hidden'); resEl.innerHTML='';
+    rowsEl.classList.remove('hidden');
+    return;
+  }
+  rowsEl.classList.add('hidden');
+  resEl.classList.remove('hidden');
+  const matched = LEADS.filter(l=>
+    (l.name||'').toLowerCase().includes(q) ||
+    (l.mobile||'').toLowerCase().includes(q) ||
+    (l.loanType||'').toLowerCase().includes(q)
+  );
+  resEl.innerHTML = buildCardListHtml(matched);
+}
+
+let CURRENT_BUCKET = 'all';
+function openBucketSheet(key){
+  CURRENT_BUCKET = key;
+  const def = BUCKET_DEFS.find(b=>b.key===key);
+  document.getElementById('bucketTitle').textContent = (def ? def.icon+' '+def.label : 'Leads');
+  document.getElementById('bucketSearch').value = '';
+  renderBucketList();
+  openSheet('sheetBucketList');
+}
+function renderBucketList(){
+  const today = todayISO();
+  const q = (document.getElementById('bucketSearch').value||'').toLowerCase().trim();
+  let list = LEADS.filter(l=>leadMatchesBucket(l, CURRENT_BUCKET, today));
+  if(q) list = list.filter(l=>
+    (l.name||'').toLowerCase().includes(q) ||
+    (l.mobile||'').toLowerCase().includes(q) ||
+    (l.loanType||'').toLowerCase().includes(q)
+  );
+  list.sort((a,b)=>{
+    const aOverdue = a.status==='pending' && a.followupDate && a.followupDate<today;
+    const bOverdue = b.status==='pending' && b.followupDate && b.followupDate<today;
+    if(aOverdue!==bOverdue) return aOverdue ? -1 : 1;
+    return (b.createdAt||'').localeCompare(a.createdAt||'');
+  });
+  document.getElementById('bucketLeadsList').innerHTML = buildGroupedHtml(list, CURRENT_BUCKET);
+}
+
+// Groups a lead list by loan type, in LEAD_LOAN_TYPES order (unknown types last).
+function groupByProduct(list){
+  const map = {};
+  list.forEach(l=>{
+    const t = l.loanType || 'Other';
+    if(!map[t]) map[t] = [];
+    map[t].push(l);
+  });
+  const order = LEAD_LOAN_TYPES.filter(t=>map[t]).concat(Object.keys(map).filter(t=>!LEAD_LOAN_TYPES.includes(t)));
+  return order.map(t=>({type:t, leads:map[t]}));
+}
+
+// Collapsible per-product accordion for a bucket sheet, each with its own
+// small PDF-export button. Collapsed by default.
+function buildGroupedHtml(list, bucketKey){
+  if(!list.length){
+    return `<div class="empty"><div class="icon">🤝</div><div class="title">No leads found</div><div class="desc">Tap + to add a lead</div></div>`;
+  }
+  const groups = groupByProduct(list);
+  return groups.map(g=>{
+    const icon = LEAD_TYPE_ICON[g.type] || '📄';
+    return `
+    <div class="prod-group">
+      <div class="prod-group-head" onclick="toggleGroup(this)">
+        <span class="pg-chev">▸</span>
+        <span class="pg-icon">${icon}</span>
+        <span class="pg-name">${escapeHtml(g.type)}</span>
+        <span class="pg-count">${g.leads.length}</span>
+        <button class="pg-export" onclick="event.stopPropagation(); exportGroupPdf('${bucketKey}', '${escapeHtml(g.type).replace(/'/g,"\\'")}')" aria-label="Export this group as PDF">⬇️ PDF</button>
+      </div>
+      <div class="prod-group-body hidden">${buildCardListHtml(g.leads)}</div>
+    </div>`;
+  }).join('');
+}
+function toggleGroup(headEl){
+  const group = headEl.closest('.prod-group');
+  const body = group.querySelector('.prod-group-body');
+  body.classList.toggle('hidden');
+  group.classList.toggle('open', !body.classList.contains('hidden'));
+}
+
+// Shared lead-card markup — used by the top search results, each bucket
+// sheet's list, and (unchanged in spirit) the old always-visible list.
+function waNumber(mobile){
+  const digits = String(mobile||'').replace(/\D/g,'');
+  return digits.length===10 ? '91'+digits : digits;
+}
+function buildCardListHtml(list){
+  if(!list.length){
+    return `<div class="empty"><div class="icon">🤝</div><div class="title">No leads found</div><div class="desc">Tap + to add a lead</div></div>`;
+  }
+  const today = todayISO();
+  const STATUS_PILL = {
+    pending: {cls:'gold', label:'⏳ Pending'},
+    converted: {cls:'sage', label:'✅ Converted'},
+    not_eligible: {cls:'red', label:'🚫 Not Eligible'}
+  };
+  const ACCENT = {pending:'acc-gold', converted:'acc-sage', not_eligible:'acc-red'};
+  return list.map(l=>{
+    const overdue = l.status==='pending' && l.followupDate && l.followupDate < today;
+    const dueToday = l.status==='pending' && l.followupDate === today;
+    const icon = LEAD_TYPE_ICON[l.loanType] || '📄';
+    const sp = STATUS_PILL[l.status] || STATUS_PILL.pending;
+    const latestNote = l.remarksLog && l.remarksLog.length ? l.remarksLog[l.remarksLog.length-1] : null;
+    return `
+    <div class="list-card ${overdue ? 'acc-red' : ACCENT[l.status]}" onclick="openLeadDetail('${l.id}')">
+      <div class="list-card-body">
+        <div class="lc-top">
+          <div>
+            <p class="lc-name">${escapeHtml(l.name)}</p>
+            <div class="lc-id mono">${escapeHtml(l.mobile)}</div>
+          </div>
+          <span class="pill ${sp.cls}">${sp.label}</span>
+        </div>
+        <div class="lc-actions">
+          <a class="act-btn call" href="tel:${escapeHtml(l.mobile)}" onclick="event.stopPropagation()">📞 Call</a>
+          <a class="act-btn wa" href="https://wa.me/${waNumber(l.mobile)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">💬 WhatsApp</a>
+        </div>
+        <div class="lc-meta">
+          <span class="pill navy">${icon} ${escapeHtml(l.loanType||'—')}</span>
+          ${l.status==='pending' && l.followupDate ? `<span class="pill ${overdue||dueToday?'red':'navy'}">${overdue?'⛔ Overdue':dueToday?'📌 Today':'Follow-up'} ${fmtDate(l.followupDate)}</span>` : ''}
+        </div>
+        ${latestNote ? (isToday(latestNote.date)
+            ? `<p class="today-remark">📞 <b>Today:</b> ${escapeHtml(latestNote.text)}</p>`
+            : `<p class="small muted mt-8" style="margin-bottom:0;max-height:2.6em;overflow:hidden;">${escapeHtml(latestNote.text)}</p>`)
+          : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+function isToday(iso){ if(!iso) return false; return iso.slice(0,10) === todayISO(); }
+
+/* ---------- PDF export (html2canvas + jsPDF, A4) ---------- */
+const PRINT_STATUS_LABEL = {pending:'Pending', converted:'Converted', not_eligible:'Not Eligible'};
+function bucketLabel(key){
+  const def = BUCKET_DEFS.find(b=>b.key===key);
+  return def ? def.label : key;
+}
+function latestRemarkText(l){
+  const n = l.remarksLog && l.remarksLog.length ? l.remarksLog[l.remarksLog.length-1] : null;
+  return n ? (isToday(n.date) ? 'Today: '+n.text : fmtDateTime(n.date)+' — '+n.text) : '—';
+}
+// sections: [{ heading, groups: [{type, leads}] }]
+function printTemplateHtml(title, sections){
+  const rowsForGroup = (leads)=> leads.map(l=>`
+    <tr>
+      <td style="padding:6px 8px;border:1px solid #ddd;">${escapeHtml(l.name)}</td>
+      <td style="padding:6px 8px;border:1px solid #ddd;white-space:nowrap;">${escapeHtml(l.mobile)}</td>
+      <td style="padding:6px 8px;border:1px solid #ddd;white-space:nowrap;">${l.followupDate?fmtDate(l.followupDate):'—'}</td>
+      <td style="padding:6px 8px;border:1px solid #ddd;">${PRINT_STATUS_LABEL[l.status]||l.status}</td>
+      <td style="padding:6px 8px;border:1px solid #ddd;">${escapeHtml(latestRemarkText(l))}</td>
+    </tr>`).join('');
+  const groupTable = (g)=>`
+    <div style="font-size:12.5px;font-weight:700;color:#333;margin:10px 0 5px;">${escapeHtml(g.type)} (${g.leads.length})</div>
+    <table style="width:100%;border-collapse:collapse;font-size:10.5px;font-family:Arial,sans-serif;margin-bottom:6px;">
+      <thead><tr style="background:#F1F3F4;">
+        <th style="text-align:left;padding:6px 8px;border:1px solid #ddd;">Name</th>
+        <th style="text-align:left;padding:6px 8px;border:1px solid #ddd;">Mobile</th>
+        <th style="text-align:left;padding:6px 8px;border:1px solid #ddd;">Follow-up</th>
+        <th style="text-align:left;padding:6px 8px;border:1px solid #ddd;">Status</th>
+        <th style="text-align:left;padding:6px 8px;border:1px solid #ddd;">Latest Remark</th>
+      </tr></thead>
+      <tbody>${rowsForGroup(g.leads)}</tbody>
+    </table>`;
+  const sectionsHtml = sections.map(sec=>{
+    const body = sec.customHtml ? sec.customHtml
+      : (sec.groups.length ? sec.groups.map(groupTable).join('') : '<div style="font-size:11px;color:#888;margin:6px 0;">No leads in this bucket.</div>');
+    return `
+    <div style="margin-top:18px;">
+      <div style="font-size:15px;font-weight:800;color:#1E3A5F;border-bottom:2px solid #1E3A5F;padding-bottom:4px;">${escapeHtml(sec.heading)}</div>
+      ${body}
+    </div>`;
+  }).join('');
+  return `
+  <div style="font-family:Arial,sans-serif;padding:26px;width:748px;color:#111;background:#fff;">
+    <div style="font-size:18px;font-weight:800;color:#1E3A5F;">${escapeHtml(title)}</div>
+    <div style="font-size:11px;color:#666;margin-top:2px;">Generated ${fmtDate(todayISO())}</div>
+    ${sectionsHtml}
+  </div>`;
+}
+function npaCategoryLabel(cat){ return cat || 'SMA'; }
+function npaTableHtml(list){
+  if(!list.length) return '<div style="font-size:11px;color:#888;margin:6px 0;">No accounts.</div>';
+  const rows = list.map(a=>`
+    <tr>
+      <td style="padding:6px 8px;border:1px solid #ddd;">${escapeHtml(a.accountNo)}</td>
+      <td style="padding:6px 8px;border:1px solid #ddd;">${escapeHtml(a.name)}</td>
+      <td style="padding:6px 8px;border:1px solid #ddd;white-space:nowrap;">${escapeHtml(a.mobile)}</td>
+      <td style="padding:6px 8px;border:1px solid #ddd;white-space:nowrap;">₹${Number(a.overdueAmount||0).toLocaleString('en-IN')}</td>
+      <td style="padding:6px 8px;border:1px solid #ddd;">${escapeHtml(npaCategoryLabel(a.category))}</td>
+      <td style="padding:6px 8px;border:1px solid #ddd;">${escapeHtml(latestRemarkText(a))}</td>
+    </tr>`).join('');
+  return `
+    <table style="width:100%;border-collapse:collapse;font-size:10.5px;font-family:Arial,sans-serif;margin-top:6px;">
+      <thead><tr style="background:#F1F3F4;">
+        <th style="text-align:left;padding:6px 8px;border:1px solid #ddd;">Account No</th>
+        <th style="text-align:left;padding:6px 8px;border:1px solid #ddd;">Name</th>
+        <th style="text-align:left;padding:6px 8px;border:1px solid #ddd;">Mobile</th>
+        <th style="text-align:left;padding:6px 8px;border:1px solid #ddd;">Overdue Amt</th>
+        <th style="text-align:left;padding:6px 8px;border:1px solid #ddd;">Category</th>
+        <th style="text-align:left;padding:6px 8px;border:1px solid #ddd;">Latest Remark</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+async function renderHtmlToPdf(html, filename){
+  const root = document.getElementById('printRoot');
+  root.innerHTML = html;
+  showToast('Preparing PDF…');
+  try{
+    const canvas = await html2canvas(root, {scale:2, backgroundColor:'#ffffff', useCORS:true});
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p','mm','a4');
+    const pageWidth = 210, pageHeight = 297;
+    const imgWidth = pageWidth;
+    const imgHeight = canvas.height * imgWidth / canvas.width;
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    let heightLeft = imgHeight, position = 0;
+    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+    while(heightLeft > 0){
+      position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+    }
+    pdf.save(filename);
+    showToast('PDF saved');
+  }catch(e){
+    console.error('PDF export failed', e);
+    showToast('⚠️ PDF export failed — check internet connection');
+  }finally{
+    root.innerHTML = '';
+  }
+}
+function exportGroupPdf(bucketKey, productType){
+  const today = todayISO();
+  const leads = LEADS.filter(l=>leadMatchesBucket(l, bucketKey, today) && (l.loanType||'Other')===productType);
+  const title = `${bucketLabel(bucketKey)} — ${productType}`;
+  const html = printTemplateHtml(title, [{ heading: bucketLabel(bucketKey), groups: [{type: productType, leads}] }]);
+  renderHtmlToPdf(html, `Leads-${bucketLabel(bucketKey)}-${productType}-${today}.pdf`.replace(/\s+/g,'_'));
+}
+function exportAllPdf(){
+  const today = todayISO();
+  const keys = ['today','overdue','future','converted','noteligible'];
+  const sections = keys.map(k=>{
+    const list = LEADS.filter(l=>leadMatchesBucket(l, k, today));
+    return { heading: bucketLabel(k), groups: groupByProduct(list) };
+  });
+  const npaSorted = sortNpaList(NPA_ACCOUNTS.filter(a=>a.status==='open'));
+  sections.push({ heading: 'NPA / SMA Followup', groups: [], customHtml: npaTableHtml(npaSorted) });
+  const html = printTemplateHtml('Full Leads Report — All Tabs', sections);
+  renderHtmlToPdf(html, `Leads-Full-Report-${today}.pdf`);
+}
+function exportNpaPdf(){
+  const q = (document.getElementById('npaSearch').value||'').toLowerCase().trim();
+  let list = NPA_ACCOUNTS.filter(a=>a.status==='open');
+  if(q) list = list.filter(a=>
+    (a.accountNo||'').toLowerCase().includes(q) ||
+    (a.name||'').toLowerCase().includes(q) ||
+    (a.mobile||'').toLowerCase().includes(q)
+  );
+  list = sortNpaList(list);
+  const html = printTemplateHtml('NPA / SMA Followup', [{ heading:'NPA / SMA Followup', groups:[], customHtml: npaTableHtml(list) }]);
+  renderHtmlToPdf(html, `NPA-SMA-Followup-${todayISO()}.pdf`);
+}
+
+/* ---------- Add lead ---------- */
+function openNewLeadSheet(){
+  const sel = document.getElementById('ld-loantype');
+  sel.innerHTML = LEAD_LOAN_TYPES.map(lt=>`<option value="${escapeHtml(lt)}">${LEAD_TYPE_ICON[lt]} ${escapeHtml(lt)}</option>`).join('');
+  ['ld-name','ld-mobile','ld-followup','ld-remark'].forEach(id=>document.getElementById(id).value='');
+  openSheet('sheetNewLead');
+}
+async function createLeadFromSheet(){
+  const name = document.getElementById('ld-name').value.trim();
+  const mobile = document.getElementById('ld-mobile').value.trim();
+  const loanType = document.getElementById('ld-loantype').value;
+  const followupDate = document.getElementById('ld-followup').value;
+  const remark = document.getElementById('ld-remark').value.trim();
+  if(!name || !mobile){ showToast('Please fill Name and Mobile'); return; }
+  const now = new Date().toISOString();
+  const lead = {
+    id: uid('lead'), name, mobile, loanType, followupDate, remark,
+    createdAt: now, converted:false, convertedCaseId:'',
+    status:'pending', notEligibleReason:'',
+    remarksLog: remark ? [{date:now, text:remark}] : []
+  };
+  LEADS.push(lead);
+  closeSheet('sheetNewLead');
+  renderAll();
+  showToast('Saving…');
+  const ok = await saveLeads();
+  showToast(ok ? 'Lead added: '+name : 'Added locally — will sync when connection is back');
+}
+
+/* ---------- Lead detail (remarks timeline, status actions) ---------- */
+let CURRENT_LEAD_ID = null;
+function openLeadDetail(id){
+  CURRENT_LEAD_ID = id;
+  renderLeadDetail();
+  openSheet('sheetLeadDetail');
+}
+function renderLeadDetail(){
+  const l = LEADS.find(x=>x.id===CURRENT_LEAD_ID);
+  if(!l){ closeSheet('sheetLeadDetail'); return; }
+  document.getElementById('ldTitle').textContent = l.name;
+  const icon = LEAD_TYPE_ICON[l.loanType] || '📄';
+  const STATUS_PILL = {
+    pending: {cls:'gold', label:'⏳ Pending'},
+    converted: {cls:'sage', label:'✅ Converted'},
+    not_eligible: {cls:'red', label:'🚫 Not Eligible'}
+  };
+  const sp = STATUS_PILL[l.status] || STATUS_PILL.pending;
+  const timeline = [...(l.remarksLog||[])].sort((a,b)=>b.date.localeCompare(a.date));
+
+  document.getElementById('ldBody').innerHTML = `
+    <div class="lc-meta" style="margin-bottom:4px;">
+      <span class="pill navy">${icon} ${escapeHtml(l.loanType||'—')}</span>
+      <span class="pill ${sp.cls}">${sp.label}</span>
+    </div>
+    <p class="small mono muted mt-8" style="margin-bottom:2px;">${escapeHtml(l.mobile)}</p>
+    <div class="lc-actions" style="margin-top:2px;margin-bottom:2px;">
+      <a class="act-btn call" href="tel:${escapeHtml(l.mobile)}">📞 Call</a>
+      <a class="act-btn wa" href="https://wa.me/${waNumber(l.mobile)}" target="_blank" rel="noopener">💬 WhatsApp</a>
+    </div>
+    ${l.status==='not_eligible' && l.notEligibleReason ? `<p class="small mt-8" style="color:var(--stamp-red);"><b>Reason:</b> ${escapeHtml(l.notEligibleReason)}</p>` : ''}
+
+    ${l.status==='pending' ? `
+    <div class="field mt-8">
+      <label>Next Follow-up Date</label>
+      <input type="date" id="ldd-followup" value="${l.followupDate||''}" onchange="updateLeadFollowup('${l.id}', this.value)">
+    </div>
+    <div class="field">
+      <label>Add a Remark for Today</label>
+      <textarea id="ldd-newremark" placeholder="What happened on this call..." style="min-height:70px;"></textarea>
+    </div>
+    <button class="btn gold" style="width:100%;margin-bottom:16px;" onclick="addRemark('${l.id}')">➕ Add Remark</button>
+    <div class="btn-row" style="display:flex;gap:8px;margin-bottom:18px;">
+      <button class="btn outline sm" onclick="markLeadConverted('${l.id}')">✅ Converted</button>
+      <button class="btn outline sm" onclick="openNotEligibleSheet('${l.id}')">🚫 Not Eligible</button>
+    </div>
+    ` : `
+    <button class="btn outline" style="width:100%;margin:14px 0 18px;" onclick="reopenLead('${l.id}')">↺ Reopen as Pending</button>
+    `}
+
+    <h3 style="font-size:13.5px;margin-bottom:10px;">📋 Call History</h3>
+    ${timeline.length ? timeline.map(t=>`
+      <div class="timeline-entry">
+        <div class="timeline-date">${fmtDateTime(t.date)}</div>
+        <div class="timeline-text">${escapeHtml(t.text)}</div>
+      </div>`).join('') : '<p class="small muted">No remarks logged yet.</p>'}
+
+    <button class="btn ghost sm mt-8" onclick="deleteLead('${l.id}')">✕ Remove this lead</button>
+  `;
+}
+async function updateLeadFollowup(id, date){
+  const l = LEADS.find(x=>x.id===id); if(!l) return;
+  l.followupDate = date;
+  const ok = await saveLeads();
+  renderAll();
+  showToast(ok ? 'Follow-up date updated' : 'Saved locally — will sync');
+}
+async function addRemark(id){
+  const l = LEADS.find(x=>x.id===id); if(!l) return;
+  const text = document.getElementById('ldd-newremark').value.trim();
+  if(!text){ showToast('Type a remark first'); return; }
+  if(!Array.isArray(l.remarksLog)) l.remarksLog = [];
+  const now = new Date().toISOString();
+  l.remarksLog.push({date: now, text});
+  l.remark = text; // keep legacy single-field preview in sync for the main Loan Tracker's card view
+  renderLeadDetail();
+  showToast('Saving…');
+  const ok = await saveLeads();
+  renderAll();
+  showToast(ok ? 'Remark added' : 'Saved locally — will sync');
+}
+function openNotEligibleSheet(id){
+  document.getElementById('ne-leadid').value = id;
+  document.getElementById('ne-reason').value = '';
+  openSheet('sheetNotEligible');
+}
+async function confirmNotEligible(){
+  const id = document.getElementById('ne-leadid').value;
+  const reason = document.getElementById('ne-reason').value.trim();
+  if(!reason){ showToast('Please add a reason'); return; }
+  const l = LEADS.find(x=>x.id===id); if(!l) return;
+  l.status = 'not_eligible';
+  l.converted = false;
+  l.notEligibleReason = reason;
+  closeSheet('sheetNotEligible');
+  renderLeadDetail();
+  const ok = await saveLeads();
+  renderAll();
+  showToast(ok ? 'Marked Not Eligible' : 'Saved locally — will sync');
+}
+async function markLeadConverted(id){
+  const l = LEADS.find(x=>x.id===id); if(!l) return;
+  l.status = 'converted';
+  l.converted = true;
+  renderLeadDetail();
+  const ok = await saveLeads();
+  renderAll();
+  showToast(ok ? 'Marked as Converted 🎉' : 'Saved locally — will sync');
+}
+async function reopenLead(id){
+  const l = LEADS.find(x=>x.id===id); if(!l) return;
+  l.status = 'pending';
+  l.converted = false;
+  l.notEligibleReason = '';
+  renderLeadDetail();
+  const ok = await saveLeads();
+  renderAll();
+  showToast(ok ? 'Lead reopened' : 'Saved locally — will sync');
+}
+async function deleteLead(id){
+  if(!confirm('Remove this lead? This cannot be undone.')) return;
+  LEADS = LEADS.filter(l=>l.id!==id);
+  closeSheet('sheetLeadDetail');
+  renderAll();
+  const ok = await saveLeads();
+  showToast(ok ? 'Lead removed' : 'Removed locally — will sync');
+}
+
+/* ---------- NPA / SMA Followup (separate list — loan accounts, not leads) ---------- */
+const NPA_CATEGORY_ORDER = {'NPA':0, 'Likely NPA':1, 'SMA':2};
+function sortNpaList(list){
+  return [...list].sort((a,b)=>{
+    const ca = NPA_CATEGORY_ORDER[a.category] ?? 3, cb = NPA_CATEGORY_ORDER[b.category] ?? 3;
+    if(ca!==cb) return ca-cb;
+    return (Number(b.overdueAmount)||0) - (Number(a.overdueAmount)||0);
+  });
+}
+function openNpaSheet(){
+  document.getElementById('npaSearch').value = '';
+  renderNpaList();
+  openSheet('sheetNpaList');
+}
+function renderNpaList(){
+  const q = (document.getElementById('npaSearch').value||'').toLowerCase().trim();
+  let list = NPA_ACCOUNTS.filter(a=>a.status==='open');
+  if(q) list = list.filter(a=>
+    (a.accountNo||'').toLowerCase().includes(q) ||
+    (a.name||'').toLowerCase().includes(q) ||
+    (a.mobile||'').toLowerCase().includes(q)
+  );
+  list = sortNpaList(list);
+  document.getElementById('npaLeadsList').innerHTML = buildNpaCardListHtml(list);
+}
+const NPA_CAT_CLASS = {'NPA':'cat-npa', 'Likely NPA':'cat-likely', 'SMA':'cat-sma'};
+function buildNpaCardListHtml(list){
+  if(!list.length){
+    return `<div class="empty"><div class="icon">⚠️</div><div class="title">No accounts found</div><div class="desc">Tap ➕ to add an account</div></div>`;
+  }
+  return list.map(a=>{
+    const catCls = NPA_CAT_CLASS[a.category] || 'cat-sma';
+    const latestNote = a.remarksLog && a.remarksLog.length ? a.remarksLog[a.remarksLog.length-1] : null;
+    return `
+    <div class="list-card acc-red" onclick="openNpaDetail('${a.id}')">
+      <div class="list-card-body">
+        <div class="lc-top">
+          <div>
+            <p class="lc-name">${escapeHtml(a.name)}</p>
+            <div class="lc-id mono">${escapeHtml(a.accountNo)} · ${escapeHtml(a.mobile)}</div>
+          </div>
+          <span class="pill ${catCls}">${escapeHtml(a.category)}</span>
+        </div>
+        <div class="lc-actions">
+          <a class="act-btn call" href="tel:${escapeHtml(a.mobile)}" onclick="event.stopPropagation()">📞 Call</a>
+          <a class="act-btn wa" href="https://wa.me/${waNumber(a.mobile)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">💬 WhatsApp</a>
+        </div>
+        <div class="lc-meta">
+          <span class="pill red">₹${Number(a.overdueAmount||0).toLocaleString('en-IN')} overdue</span>
+        </div>
+        ${latestNote ? (isToday(latestNote.date)
+            ? `<p class="today-remark">📞 <b>Today:</b> ${escapeHtml(latestNote.text)}</p>`
+            : `<p class="small muted mt-8" style="margin-bottom:0;max-height:2.6em;overflow:hidden;">${escapeHtml(latestNote.text)}</p>`)
+          : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+function openAddNpaSheet(){
+  ['npa-accno','npa-name','npa-mobile','npa-amount','npa-remark'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('npa-category').value = 'SMA';
+  openSheet('sheetAddNpa');
+}
+async function createNpaFromSheet(){
+  const accountNo = document.getElementById('npa-accno').value.trim();
+  const name = document.getElementById('npa-name').value.trim();
+  const mobile = document.getElementById('npa-mobile').value.trim();
+  const overdueAmount = Number(document.getElementById('npa-amount').value) || 0;
+  const category = document.getElementById('npa-category').value;
+  const remark = document.getElementById('npa-remark').value.trim();
+  if(!accountNo || !name || !mobile || !overdueAmount){ showToast('Please fill Account No, Name, Mobile and Overdue Amount'); return; }
+  const now = new Date().toISOString();
+  const acc = {
+    id: uid('npa'), accountNo, name, mobile, overdueAmount, category,
+    status:'open', createdAt: now,
+    remarksLog: remark ? [{date:now, text:remark}] : []
+  };
+  NPA_ACCOUNTS.push(acc);
+  closeSheet('sheetAddNpa');
+  renderAll();
+  showToast('Saving…');
+  const ok = await saveNpaAccounts();
+  showToast(ok ? 'Account added: '+name : 'Added locally — will sync when connection is back');
+}
+let CURRENT_NPA_ID = null;
+function openNpaDetail(id){
+  CURRENT_NPA_ID = id;
+  renderNpaDetail();
+  openSheet('sheetNpaDetail');
+}
+function renderNpaDetail(){
+  const a = NPA_ACCOUNTS.find(x=>x.id===CURRENT_NPA_ID);
+  if(!a){ closeSheet('sheetNpaDetail'); return; }
+  document.getElementById('npaTitle').textContent = a.name;
+  const catCls = NPA_CAT_CLASS[a.category] || 'cat-sma';
+  const timeline = [...(a.remarksLog||[])].sort((x,y)=>y.date.localeCompare(x.date));
+  document.getElementById('npaBody').innerHTML = `
+    <div class="lc-meta" style="margin-bottom:4px;">
+      <span class="pill navy">${escapeHtml(a.accountNo)}</span>
+      <span class="pill ${catCls}">${escapeHtml(a.category)}</span>
+      <span class="pill red">₹${Number(a.overdueAmount||0).toLocaleString('en-IN')} overdue</span>
+      ${a.status==='resolved' ? `<span class="pill sage">✅ Resolved</span>` : ''}
+    </div>
+    <p class="small mono muted mt-8" style="margin-bottom:2px;">${escapeHtml(a.mobile)}</p>
+    <div class="lc-actions" style="margin-top:2px;margin-bottom:2px;">
+      <a class="act-btn call" href="tel:${escapeHtml(a.mobile)}">📞 Call</a>
+      <a class="act-btn wa" href="https://wa.me/${waNumber(a.mobile)}" target="_blank" rel="noopener">💬 WhatsApp</a>
+    </div>
+
+    ${a.status==='open' ? `
+    <div class="field mt-8">
+      <label>Overdue Amount (₹)</label>
+      <input type="number" id="npad-amount" value="${a.overdueAmount||0}" onchange="updateNpaAmount('${a.id}', this.value)">
+    </div>
+    <div class="field">
+      <label>Category</label>
+      <select id="npad-category" onchange="updateNpaCategory('${a.id}', this.value)">
+        <option value="SMA" ${a.category==='SMA'?'selected':''}>SMA</option>
+        <option value="Likely NPA" ${a.category==='Likely NPA'?'selected':''}>Likely NPA</option>
+        <option value="NPA" ${a.category==='NPA'?'selected':''}>NPA</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Add a Remark for Today</label>
+      <textarea id="npad-newremark" placeholder="What happened on this call..." style="min-height:70px;"></textarea>
+    </div>
+    <button class="btn gold" style="width:100%;margin-bottom:16px;" onclick="addNpaRemark('${a.id}')">➕ Add Remark</button>
+    <button class="btn outline" style="width:100%;margin-bottom:18px;" onclick="markNpaResolved('${a.id}')">✅ Mark Resolved</button>
+    ` : `
+    <button class="btn outline" style="width:100%;margin:14px 0 18px;" onclick="reopenNpaAccount('${a.id}')">↺ Reopen</button>
+    `}
+
+    <h3 style="font-size:13.5px;margin-bottom:10px;">📋 Call History</h3>
+    ${timeline.length ? timeline.map(t=>`
+      <div class="timeline-entry">
+        <div class="timeline-date">${fmtDateTime(t.date)}</div>
+        <div class="timeline-text">${escapeHtml(t.text)}</div>
+      </div>`).join('') : '<p class="small muted">No remarks logged yet.</p>'}
+
+    <button class="btn ghost sm mt-8" onclick="deleteNpaAccount('${a.id}')">✕ Remove this account</button>
+  `;
+}
+async function updateNpaAmount(id, val){
+  const a = NPA_ACCOUNTS.find(x=>x.id===id); if(!a) return;
+  a.overdueAmount = Number(val) || 0;
+  const ok = await saveNpaAccounts();
+  renderAll();
+  showToast(ok ? 'Amount updated' : 'Saved locally — will sync');
+}
+async function updateNpaCategory(id, val){
+  const a = NPA_ACCOUNTS.find(x=>x.id===id); if(!a) return;
+  a.category = val;
+  const ok = await saveNpaAccounts();
+  renderNpaDetail();
+  renderAll();
+  showToast(ok ? 'Category updated' : 'Saved locally — will sync');
+}
+async function addNpaRemark(id){
+  const a = NPA_ACCOUNTS.find(x=>x.id===id); if(!a) return;
+  const text = document.getElementById('npad-newremark').value.trim();
+  if(!text){ showToast('Type a remark first'); return; }
+  if(!Array.isArray(a.remarksLog)) a.remarksLog = [];
+  const now = new Date().toISOString();
+  a.remarksLog.push({date: now, text});
+  renderNpaDetail();
+  showToast('Saving…');
+  const ok = await saveNpaAccounts();
+  renderAll();
+  showToast(ok ? 'Remark added' : 'Saved locally — will sync');
+}
+async function markNpaResolved(id){
+  const a = NPA_ACCOUNTS.find(x=>x.id===id); if(!a) return;
+  a.status = 'resolved';
+  renderNpaDetail();
+  const ok = await saveNpaAccounts();
+  renderAll();
+  showToast(ok ? 'Marked Resolved 🎉' : 'Saved locally — will sync');
+}
+async function reopenNpaAccount(id){
+  const a = NPA_ACCOUNTS.find(x=>x.id===id); if(!a) return;
+  a.status = 'open';
+  renderNpaDetail();
+  const ok = await saveNpaAccounts();
+  renderAll();
+  showToast(ok ? 'Account reopened' : 'Saved locally — will sync');
+}
+async function deleteNpaAccount(id){
+  if(!confirm('Remove this account? This cannot be undone.')) return;
+  NPA_ACCOUNTS = NPA_ACCOUNTS.filter(a=>a.id!==id);
+  closeSheet('sheetNpaDetail');
+  renderAll();
+  const ok = await saveNpaAccounts();
+  showToast(ok ? 'Account removed' : 'Removed locally — will sync');
+}
+
+/* ---------- Init ---------- */
+(async function init(){
+  initSupabase();
+  await loadLeads();
+  subscribeRealtime();
+  if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  }
+})();
+</script>
+</body>
+</html>
