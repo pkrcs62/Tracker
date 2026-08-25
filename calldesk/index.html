@@ -1,0 +1,2024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#1E3A5F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Leads">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Leads</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700;800&family=Sora:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --navy:#E40000; --navy-deep:#B30000; --navy-soft:#FF3D3D;
+  --gold:#E40000; --gold-deep:#B30000; --gold-bg:#FDE8E8;
+  --sage:#2C6B48; --sage-deep:#1F8A4C; --sage-bg:#E1F0E7;
+  --red:#B23B2E; --red-bg:#FBE7E3;
+  --paper:#F7F7F8; --paper-card:#FFFFFF;
+  --ink:#1C2530; --ink-soft:#4E5763; --ink-faint:#6B7280;
+  --line:#E5E5E7;
+  --glass-bg:rgba(255,255,255,.86); --glass-border:rgba(0,0,0,.06);
+  --glass-bg-navy:rgba(228,0,0,.55); --glass-border-navy:rgba(255,255,255,.14);
+  --shine:#FF6B4A; --shine-warm:#FF3D3D;
+  --shadow-card:0 1px 2px rgba(20,20,20,.05), 0 4px 12px rgba(20,20,20,.06);
+  --shadow-float:0 8px 22px rgba(228,0,0,.20), 0 3px 8px rgba(20,20,20,.10);
+  --radius:18px; --radius-sm:12px;
+  --safe-top:env(safe-area-inset-top,0px); --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;color:var(--ink);
+  background:
+    radial-gradient(720px 420px at 92% -6%, rgba(228,0,0,.08), transparent 60%),
+    radial-gradient(640px 380px at -8% 12%, rgba(228,0,0,.05), transparent 55%),
+    var(--paper);
+  background-attachment:fixed;
+}
+body{font-family:'Sora',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;line-height:1.45;padding-bottom:calc(24px + var(--safe-bottom));}
+h1,h2,h3{font-family:'Space Grotesk',-apple-system,sans-serif;font-weight:700;letter-spacing:-.01em;margin:0;}
+button{font-family:inherit;}
+input,select,textarea{font-family:inherit;}
+.hidden{display:none !important;}
+.mono{font-family:'Space Mono','SF Mono',SFMono-Regular,Consolas,Menlo,monospace;letter-spacing:.2px;}
+.small{font-size:12px;}
+.muted{color:var(--ink-faint);}
+.mt-8{margin-top:8px;}
+@media (prefers-reduced-motion: reduce){ *{animation-duration:.001ms !important; transition-duration:.001ms !important;} }
+
+/* ---------- Topbar (glass over navy) ---------- */
+.topbar{
+  position:sticky;top:0;z-index:40;color:#fff;
+  padding:calc(14px + var(--safe-top)) 16px 14px;display:flex;align-items:center;gap:11px;
+  background:linear-gradient(135deg,var(--navy),var(--navy-deep));
+  box-shadow:0 4px 18px rgba(15,25,40,.28);
+  backdrop-filter:blur(14px);
+}
+.topbar .brand-mark{width:34px;height:34px;border-radius:9px;flex-shrink:0;}
+.topbar h1{font-size:17px;color:#fff;}
+.topbar .sub{font-size:11.5px;color:#AEBBCB;margin-top:1px;}
+.topbar .right{margin-left:auto;}
+.icon-btn{
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.14);color:#fff;width:38px;height:38px;border-radius:12px;
+  font-size:17px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);
+}
+
+/* ---------- Page ---------- */
+.page{max-width:640px;margin:0 auto;padding:16px;}
+.page-head{margin-bottom:14px;}
+.page-head p{margin:2px 0 0;font-size:12.5px;color:var(--ink-faint);}
+
+/* ---------- Glass search bar ---------- */
+.searchbar{
+  display:flex;align-items:center;gap:10px;
+  background:var(--glass-bg);border:1px solid var(--glass-border);
+  border-radius:999px;padding:13px 16px;margin-bottom:16px;
+  box-shadow:0 2px 10px rgba(20,30,48,.06);
+  backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+}
+.searchbar span{color:#5F6368;font-size:15px;}
+.searchbar input{border:none;outline:none;background:none;flex:1;font-size:14.5px;color:var(--ink);}
+.searchbar input::placeholder{color:#80868B;}
+
+.bucket-list{display:flex;flex-direction:column;gap:9px;}
+.entry-search-results .list-card:first-child{margin-top:2px;}
+
+/* ---------- Icon system ---------- */
+.ic{display:inline-block;vertical-align:middle;flex-shrink:0;}
+
+/* ---------- Group tiles: glass chips with gradient ring, icon row ---------- */
+.entry-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;}
+.grid-tile{display:flex;flex-direction:column;align-items:center;text-align:center;cursor:pointer;}
+.grid-tile:active .gt-icon-wrap{transform:scale(.93);}
+.gt-icon-wrap{
+  position:relative;margin-bottom:10px;width:76px;height:76px;border-radius:24px;
+  transition:transform .12s ease;box-shadow:0 6px 16px rgba(20,30,48,.20);
+}
+.gt-icon-wrap.ring-blue{background:linear-gradient(135deg,#FF3D3D,#E40000);}
+.gt-icon-wrap.ring-gold{background:linear-gradient(135deg,#FF6B4A,#E40000);}
+.gt-icon-wrap.ring-red{background:linear-gradient(135deg,#FF3D3D,#B30000);}
+.gt-icon-wrap.ring-sage{background:linear-gradient(135deg,#4FAE79,var(--sage));}
+.gt-icon-wrap.ring-grey{background:linear-gradient(135deg,#8A93A0,#4E5763);}
+.gt-icon-wrap.ring-maroon{background:linear-gradient(135deg,#8A1010,#5C0A0A);}
+.gt-icon{
+  width:100%;height:100%;border-radius:24px;display:flex;align-items:center;justify-content:center;
+  color:#fff;
+}
+.gt-icon svg{width:30px;height:30px;}
+.gt-badge{
+  position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;font-size:11px;font-weight:800;
+  min-width:22px;height:22px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+  padding:0 5px;border:2.5px solid var(--paper);
+}
+.gt-badge.zero{display:none;}
+.gt-label{font-size:12.5px;font-weight:800;font-family:'Space Grotesk',sans-serif;color:#202124;line-height:1.25;max-width:88px;}
+
+/* ---------- Today-remark: shining highlight ---------- */
+.today-remark{
+  margin:9px 0 0;font-size:12.5px;font-weight:700;color:#7A5200;
+  background:linear-gradient(100deg,#FFF6DC 0%, #FFECB0 40%, #FFF6DC 60%, #FFECB0 100%);
+  background-size:220% 100%;
+  border:1px solid #F3D889;border-radius:10px;padding:7px 10px;
+  animation:shineSweep 2.6s linear infinite;
+  display:flex;align-items:center;gap:6px;
+}
+.today-remark b{font-weight:800;}
+@keyframes shineSweep{ 0%{background-position:200% 0;} 100%{background-position:-20% 0;} }
+/* ---------- Mini comment preview on feed cards (latest remark) ---------- */
+.card-comment{display:flex;gap:8px;margin-top:9px;align-items:flex-start;}
+.card-comment .cc-dot{
+  width:22px;height:22px;border-radius:50%;flex-shrink:0;margin-top:1px;
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;
+  background:linear-gradient(135deg,var(--navy-soft),var(--navy));
+}
+.card-comment .cc-body{flex:1;min-width:0;}
+.card-comment .cc-meta{font-size:10.5px;color:var(--ink-faint);font-weight:700;margin-bottom:1px;}
+.card-comment .cc-text{
+  font-size:12.5px;color:var(--ink-soft);background:rgba(0,0,0,.035);border-radius:10px;
+  padding:6px 10px;line-height:1.4;max-height:2.8em;overflow:hidden;
+}
+.card-comment.shining .cc-dot{background:linear-gradient(135deg,var(--shine),var(--gold-deep));}
+.card-comment.shining .cc-meta{color:#946B1E;}
+.card-comment.shining .cc-text{
+  background:linear-gradient(100deg,#FFF6DC 0%, #FFECB0 40%, #FFF6DC 60%, #FFECB0 100%);
+  background-size:220% 100%;border:1px solid #F3D889;color:#7A5200;font-weight:600;
+  animation:shineSweep 2.6s linear infinite;max-height:none;
+}
+.list-card.glow-today{
+  box-shadow:0 0 0 1.5px rgba(255,193,7,.55), 0 6px 22px rgba(255,178,36,.28), var(--shadow-card);
+  animation:cardPulse 2.6s ease-in-out infinite;
+}
+@keyframes cardPulse{
+  0%,100%{ box-shadow:0 0 0 1.5px rgba(255,193,7,.45), 0 6px 18px rgba(255,178,36,.22), var(--shadow-card); }
+  50%{ box-shadow:0 0 0 2.5px rgba(255,193,7,.75), 0 10px 28px rgba(255,178,36,.38), var(--shadow-card); }
+}
+
+/* ---------- Product groups (collapsible) inside a bucket sheet ---------- */
+.prod-group{margin-bottom:12px;}
+.prod-group-head{
+  display:flex;align-items:center;gap:9px;
+  background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:14px;padding:11px 12px;
+  box-shadow:0 1px 2px rgba(60,64,67,.08);cursor:pointer;backdrop-filter:blur(10px);
+}
+.prod-group-head .pg-chev{font-size:12px;color:#9AA0A6;transition:transform .15s ease;flex-shrink:0;}
+.prod-group.open .prod-group-head .pg-chev{transform:rotate(90deg);}
+.prod-group-head .pg-icon{font-size:15px;flex-shrink:0;color:var(--navy);}
+.prod-group-head .pg-name{flex:1;font-weight:700;font-size:13.5px;color:#202124;}
+.prod-group-head .pg-count{
+  font-size:11.5px;font-weight:700;color:#5F6368;background:rgba(0,0,0,.05);border-radius:10px;
+  padding:2px 8px;flex-shrink:0;
+}
+.prod-group-head .pg-export{
+  border:1px solid #D2E3FC;background:#E8F0FE;font-size:11px;font-weight:700;color:#1A73E8;
+  padding:5px 10px;border-radius:8px;flex-shrink:0;line-height:1;display:inline-flex;align-items:center;gap:4px;
+}
+.prod-group-body{padding-top:9px;}
+.prod-group-body.hidden{display:none;}
+
+/* ---------- Print root (offscreen render target for PDF export) ---------- */
+.print-root{position:fixed;left:-9999px;top:0;width:800px;background:#fff;z-index:-1;}
+
+/* ---------- Lead cards: glass, avatar ring, always-visible call/WA ---------- */
+.list-card{
+  position:relative;
+  background:var(--glass-bg);
+  border:1px solid var(--glass-border);
+  border-radius:var(--radius);margin-bottom:10px;box-shadow:var(--shadow-card);
+  border-left:4px solid var(--line);overflow:hidden;
+  backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+  transition:transform .12s ease;
+}
+.list-card:active{transform:scale(.985);}
+.list-card.acc-gold{border-left-color:var(--gold);}
+.list-card.acc-sage{border-left-color:var(--sage);}
+.list-card.acc-red{border-left-color:var(--red);}
+.list-card-body{padding:13px 14px;}
+.lc-top{display:flex;align-items:center;gap:11px;}
+.lc-avatar-ring{
+  width:46px;height:46px;border-radius:50%;padding:2.4px;flex-shrink:0;
+  background:var(--line);
+}
+.lc-avatar-ring.ring-hot{
+  background:conic-gradient(from 45deg,var(--shine),var(--red),var(--shine-warm),var(--shine));
+}
+.lc-avatar-ring.ring-gold{ background:linear-gradient(135deg,var(--shine),var(--gold)); }
+.lc-avatar-ring.ring-sage{ background:linear-gradient(135deg,#4FAE79,var(--sage)); }
+.lc-avatar-ring.ring-grey{ background:#DDE1E8; }
+.lc-avatar{
+  width:100%;height:100%;border-radius:50%;background:#fff;padding:2px;
+}
+.lc-avatar-inner{
+  width:100%;height:100%;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  color:#fff;font-weight:700;font-family:'Space Grotesk',sans-serif;font-size:15px;
+}
+.lc-who{flex:1;min-width:0;}
+.lc-name{font-family:'Space Grotesk',-apple-system,sans-serif;font-weight:700;font-size:15px;margin:0;color:var(--ink);}
+.lc-id{font-size:11.5px;color:var(--ink-faint);margin-top:2px;}
+.lc-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;}
+.pill{font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;display:inline-flex;align-items:center;gap:4px;}
+.pill.navy{background:var(--navy-soft);color:#fff;}
+.pill.gold{background:var(--gold-bg);color:var(--gold-deep);}
+.pill.sage{background:var(--sage-bg);color:var(--sage);}
+.pill.red{background:var(--red-bg);color:var(--red);}
+.lc-foot{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap;}
+.btn{
+  border:none;border-radius:10px;padding:10px 14px;font-size:13px;font-weight:700;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+}
+.btn.gold{background:linear-gradient(135deg,var(--navy-soft),var(--navy));color:#fff;}
+.btn.outline{background:rgba(255,255,255,.5);border:1.4px solid var(--line);color:var(--ink-soft);backdrop-filter:blur(8px);}
+.btn.ghost{background:none;color:var(--ink-faint);padding:8px 10px;}
+.btn.danger{background:var(--red);color:#fff;}
+.btn.sm{padding:8px 12px;font-size:12px;flex:1;}
+.btn:active{transform:scale(.97);}
+
+/* ---------- Comment-feed remarks (profile view) ---------- */
+.remark-quick{display:flex;gap:8px;margin-bottom:10px;}
+.remark-quick button{
+  flex:1;border:1.4px solid var(--line);background:rgba(255,255,255,.6);border-radius:12px;padding:9px 4px;
+  font-size:12px;font-weight:700;color:var(--ink-soft);display:flex;flex-direction:column;align-items:center;gap:3px;
+  backdrop-filter:blur(8px);
+}
+.remark-quick button:active{transform:scale(.95);background:var(--gold-bg);}
+.remark-quick .rq-emoji{font-size:17px;}
+.comment-entry{
+  display:flex;gap:10px;padding:11px 0;border-bottom:1px solid rgba(0,0,0,.05);
+}
+.comment-entry:last-child{border-bottom:none;}
+.comment-dot{
+  width:30px;height:30px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,var(--navy-soft),var(--navy));
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;
+}
+.comment-bubble{
+  flex:1;background:rgba(255,255,255,.65);border:1px solid rgba(0,0,0,.05);border-radius:14px;padding:9px 12px;
+  backdrop-filter:blur(6px);
+}
+.comment-bubble.is-today{background:linear-gradient(100deg,#FFF6DC,#FFECB0,#FFF6DC);background-size:220% 100%;border-color:#F3D889;animation:shineSweep 3s linear infinite;}
+.comment-date{font-size:10.5px;font-weight:700;color:var(--ink-faint);}
+.comment-text{font-size:13.5px;margin-top:3px;color:var(--ink);}
+
+/* ---------- Profile header (lead detail) ---------- */
+.profile-head{display:flex;flex-direction:column;align-items:center;text-align:center;padding:6px 0 14px;}
+.profile-avatar-ring{
+  width:84px;height:84px;border-radius:50%;padding:3.5px;margin-bottom:10px;
+  background:conic-gradient(from 45deg,var(--shine),var(--gold),var(--shine-warm),var(--shine));
+}
+.profile-avatar-ring.grey{background:#DDE1E8;}
+.profile-avatar{width:100%;height:100%;border-radius:50%;background:#fff;padding:3px;}
+.profile-avatar-inner{
+  width:100%;height:100%;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  color:#fff;font-weight:700;font-family:'Space Grotesk',sans-serif;font-size:28px;
+}
+.profile-name{font-size:19px;}
+.profile-bio{font-size:12.5px;color:var(--ink-faint);margin-top:2px;}
+.profile-stats{display:flex;gap:0;margin-top:14px;width:100%;max-width:320px;}
+.profile-stats .st{flex:1;text-align:center;border-right:1px solid var(--line);}
+.profile-stats .st:last-child{border-right:none;}
+.profile-stats .st .n{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:19px;color:var(--navy);}
+.profile-stats .st .l{font-size:10px;color:var(--ink-faint);font-weight:700;text-transform:uppercase;letter-spacing:.02em;margin-top:2px;}
+
+/* ---------- Swipe-to-act card wrapper ---------- */
+.swipe-wrap{position:relative;margin-bottom:10px;border-radius:var(--radius);overflow:hidden;}
+.swipe-wrap .list-card{margin-bottom:0;}
+.swipe-reveal{
+  position:absolute;inset:0;display:flex;align-items:center;font-weight:800;font-size:13px;color:#fff;
+  padding:0 18px;opacity:0;pointer-events:none;
+}
+.swipe-reveal.left{justify-content:flex-end;background:linear-gradient(90deg,transparent,var(--sage-deep));}
+.swipe-reveal.right{justify-content:flex-start;background:linear-gradient(90deg,var(--gold-deep),transparent);}
+
+/* ---------- Sheets ---------- */
+.sheet-overlay{
+  position:fixed;inset:0;background:rgba(18,30,44,.5);z-index:60;display:none;align-items:flex-end;justify-content:center;
+  backdrop-filter:blur(2px);
+}
+.sheet-overlay.active{display:flex;}
+.sheet{
+  background:rgba(241,244,249,.94);width:100%;max-width:640px;border-radius:22px 22px 0 0;
+  max-height:90vh;overflow-y:auto;padding-bottom:calc(18px + var(--safe-bottom));
+  animation:sheetUp .26s cubic-bezier(.2,.9,.3,1.1);
+  border-top:1px solid rgba(255,255,255,.6);
+  backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px);
+}
+@keyframes sheetUp{from{transform:translateY(28px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.sheet-handle{width:38px;height:4px;background:var(--line);border-radius:3px;margin:10px auto 4px;}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;padding:8px 18px 12px;border-bottom:1px solid var(--line);}
+.sheet-close{background:none;border:none;font-size:17px;color:var(--ink-faint);padding:4px 8px;}
+.sheet-body{padding:16px 18px;}
+.sheet-foot{padding:12px 18px 4px;display:flex;gap:10px;}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:12px;font-weight:700;color:var(--ink-soft);margin-bottom:6px;}
+.field input,.field select,.field textarea{
+  width:100%;padding:11px 12px;border:1.4px solid var(--line);border-radius:10px;font-size:14px;color:var(--ink);
+  background:var(--paper-card);outline:none;
+}
+.field textarea{resize:vertical;}
+.field-row{display:flex;gap:10px;}
+.field-row .field{flex:1;}
+/* ---------- Duplicate-lead check items (post-save popup, Insta-style) ---------- */
+.dup-sheet-head{
+  display:flex;align-items:center;gap:12px;padding:14px 18px 14px;border-bottom:1px solid var(--line);
+}
+.dup-sheet-icon{
+  width:44px;height:44px;border-radius:14px;flex-shrink:0;font-size:20px;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#FF6B4A,#E40000);box-shadow:0 4px 12px rgba(228,0,0,.3);
+}
+.dup-item{
+  display:flex;align-items:center;gap:12px;padding:13px;border:1px solid var(--line);border-radius:16px;cursor:pointer;margin-bottom:10px;
+  background:#fff;
+}
+.dup-item:active{background:var(--paper);}
+.dup-item .dup-av{
+  width:44px;height:44px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  color:#fff;font-weight:800;font-family:'Space Grotesk',sans-serif;font-size:15px;
+  background:linear-gradient(135deg,#FF3D3D,#E40000);
+  box-shadow:0 3px 10px rgba(228,0,0,.25);
+}
+.dup-item .dup-info{flex:1;min-width:0;}
+.dup-item .dup-name{font-weight:800;font-size:14.5px;color:var(--ink);font-family:'Space Grotesk',sans-serif;}
+.dup-item .dup-meta{font-size:12px;color:var(--ink-faint);margin-top:2px;}
+.dup-notdup{
+  display:block;width:100%;border:none;color:#fff;font-weight:800;font-size:13.5px;
+  padding:14px;cursor:pointer;border-radius:14px;font-family:'Space Grotesk',sans-serif;
+  background:linear-gradient(135deg,#FF3D3D,#E40000);
+  box-shadow:0 6px 16px rgba(228,0,0,.35);
+}
+.dup-notdup:active{transform:scale(.98);}
+.visit-today-check{
+  display:flex;align-items:center;gap:10px;background:linear-gradient(100deg,#FFF6DC,#FFECB0);
+  border:1.4px solid #F3D889;border-radius:12px;padding:11px 14px;margin-bottom:14px;font-weight:700;
+  font-size:13.5px;color:#7A5200;cursor:pointer;
+}
+.visit-today-check input[type="checkbox"]{width:19px;height:19px;accent-color:var(--gold-deep);flex-shrink:0;}
+/* ---------- Bulk import (Corporate Tie-up) ---------- */
+.bulk-import-link{
+  display:flex;align-items:center;gap:7px;width:100%;border:1.4px dashed var(--navy-soft);background:rgba(228,0,0,.04);
+  color:var(--navy);font-weight:700;font-size:12.5px;padding:11px 12px;border-radius:12px;margin-bottom:16px;cursor:pointer;
+}
+.bulk-import-link:active{background:rgba(228,0,0,.08);}
+.bi-preview-table{width:100%;border-collapse:collapse;margin-top:10px;font-size:12px;}
+.bi-preview-table th{text-align:left;font-size:10.5px;color:var(--ink-faint);font-weight:700;padding:6px 8px;border-bottom:1.4px solid var(--line);text-transform:uppercase;letter-spacing:.02em;}
+.bi-preview-table td{padding:7px 8px;border-bottom:1px solid var(--line);color:var(--ink);}
+.bi-preview-table tr:last-child td{border-bottom:none;}
+.bi-summary{
+  display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:var(--sage);
+  background:var(--sage-bg);padding:9px 12px;border-radius:10px;margin-top:10px;
+}
+.bi-summary.warn{color:var(--gold-deep);background:var(--gold-bg);}
+.bi-error-row{color:var(--red);font-size:11.5px;}
+
+/* ---------- Empty state ---------- */
+.empty{text-align:center;padding:50px 20px;color:var(--ink-faint);}
+.empty .icon{font-size:36px;margin-bottom:8px;}
+.empty .title{font-weight:700;color:var(--ink-soft);}
+.empty .desc{font-size:12.5px;margin-top:4px;}
+
+/* ---------- FAB ---------- */
+.fab{
+  position:fixed;right:20px;bottom:calc(20px + var(--safe-bottom));z-index:35;
+  width:56px;height:56px;border-radius:18px;color:#fff;border:none;
+  background:linear-gradient(135deg,var(--gold),var(--gold-deep));
+  box-shadow:0 10px 26px rgba(228,0,0,.42), var(--shadow-float);
+  font-size:24px;display:flex;align-items:center;justify-content:center;
+}
+.fab:active{transform:scale(.94);}
+
+/* ---------- Toast ---------- */
+#toast{
+  position:fixed;left:50%;bottom:calc(90px + var(--safe-bottom));transform:translateX(-50%) translateY(20px);
+  background:var(--navy-deep);color:#fff;padding:11px 18px;border-radius:11px;font-size:13px;font-weight:600;
+  z-index:80;opacity:0;transition:all .25s ease;box-shadow:var(--shadow-float);max-width:86vw;text-align:center;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ---------- Sync pill ---------- */
+.sync-pill{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:999px;background:rgba(255,255,255,.14);color:#AEBBCB;}
+.sync-pill.on{background:rgba(95,122,84,.4);color:#CDE0C4;}
+
+/* ---------- Call / WhatsApp action row (always visible) ---------- */
+.lc-actions{display:flex;gap:8px;margin-top:10px;}
+.act-btn{
+  flex:1;text-align:center;padding:9px 10px;border-radius:10px;font-size:12.5px;font-weight:700;
+  text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:5px;
+}
+.act-btn.call{background:#E8F0FE;color:#1A73E8;}
+.act-btn.wa{background:#E5F9EA;color:#128C4A;}
+
+/* ---------- NPA/SMA category badges ---------- */
+.pill.cat-sma{background:var(--gold-bg);color:var(--gold-deep);}
+.pill.cat-likely{background:#FFE8CC;color:#B15C00;}
+.pill.cat-npa{background:#4A1414;color:#fff;}
+.npa-row-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.npa-row-head .searchbar{flex:1;margin-bottom:0;}
+.npa-head-btn{
+  border:none;background:rgba(255,255,255,.6);color:#3C4043;width:42px;height:42px;border-radius:12px;flex-shrink:0;
+  font-size:17px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <img src="icon-192.png" class="brand-mark" alt="Leads" onerror="this.style.display='none'">
+  <div>
+    <h1>Leads</h1>
+    <div class="sub">Lead follow-up tracker</div>
+  </div>
+  <div class="right" style="display:flex;align-items:center;gap:8px;">
+    <span class="sync-pill" id="syncPill">Connecting…</span>
+    <button class="icon-btn" onclick="exportAllPdf()" aria-label="Print full report (all tabs)"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>
+    <button class="icon-btn" onclick="manualSync()" aria-label="Sync"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button>
+  </div>
+</div>
+<div class="print-root" id="printRoot"></div>
+
+<div class="page">
+  <div class="searchbar">
+    <span><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+    <input type="text" id="entrySearch" placeholder="Search name, mobile or loan type..." oninput="onEntrySearch()">
+  </div>
+
+  <div id="entrySearchResults" class="entry-search-results hidden"></div>
+  <div id="entryRows" class="bucket-list"></div>
+</div>
+
+<button class="fab" onclick="openNewLeadSheet()" aria-label="Add lead"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></button>
+<div id="toast"></div>
+
+<!-- Add Lead -->
+<div class="sheet-overlay" id="sheetNewLead">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h3 style="display:flex;align-items:center;gap:8px;"><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Add Lead</h3><button class="sheet-close" onclick="closeSheet('sheetNewLead')">✕</button></div>
+    <div class="sheet-body">
+      <button type="button" class="bulk-import-link" onclick="closeSheet('sheetNewLead'); openBulkImportSheet();"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Bulk import from Excel/CSV instead</button>
+      <div class="field">
+        <label>Name *</label>
+        <input type="text" id="ld-name" placeholder="Customer full name" autocomplete="off">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Mobile Number *</label>
+          <input type="tel" id="ld-mobile" placeholder="10-digit mobile" maxlength="15">
+        </div>
+        <div class="field">
+          <label>Loan Type *</label>
+          <select id="ld-loantype"></select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Company (optional — Corporate Tie-up)</label>
+        <input type="text" id="ld-company" placeholder="e.g. Acme Industries" autocomplete="off" list="ld-company-list">
+        <datalist id="ld-company-list"></datalist>
+      </div>
+      <div class="field">
+        <label>Next Follow-up Date</label>
+        <input type="date" id="ld-followup">
+      </div>
+      <div class="field">
+        <label>First Remark</label>
+        <textarea id="ld-remark" placeholder="What was discussed, what's needed next..." style="min-height:80px;"></textarea>
+      </div>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn gold" style="flex:1;" onclick="createLeadFromSheet()">Add Lead</button>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Import (Corporate Tie-up Excel/CSV) -->
+<div class="sheet-overlay" id="sheetBulkImport" style="z-index:66;">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h3 style="display:flex;align-items:center;gap:8px;"><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg> Bulk Import — Corporate Tie-up</h3><button class="sheet-close" onclick="closeSheet('sheetBulkImport')">✕</button></div>
+    <div class="sheet-body">
+      <div class="field">
+        <label>Company Name *</label>
+        <input type="text" id="bi-company" placeholder="e.g. Acme Industries" autocomplete="off" list="bi-company-list">
+        <datalist id="bi-company-list"></datalist>
+      </div>
+      <div class="field">
+        <label>Loan Type *</label>
+        <select id="bi-loantype"></select>
+      </div>
+      <div class="field">
+        <label>CSV File *</label>
+        <input type="file" id="bi-file" accept=".csv,text/csv" onchange="handleBulkImportFile(event)">
+        <p class="small muted mt-8" style="margin-bottom:0;">Columns: <b>name,mobile,company</b>. Company only needs to be filled on the first row — blank rows below inherit it automatically.</p>
+      </div>
+      <div id="bi-preview"></div>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn gold" style="flex:1;" onclick="confirmBulkImport()" id="bi-confirm-btn" disabled>Import Leads</button>
+    </div>
+  </div>
+</div>
+
+<!-- Post-save duplicate check popup -->
+<div class="sheet-overlay" id="sheetDupCheck" style="z-index:70;">
+  <div class="sheet" style="max-width:440px;">
+    <div class="sheet-handle"></div>
+    <div class="dup-sheet-head">
+      <div class="dup-sheet-icon">⚠️</div>
+      <div>
+        <h3 style="font-size:16px;">Possible Duplicate</h3>
+        <div class="small muted" style="margin-top:1px;">Check before keeping this lead</div>
+      </div>
+      <button class="sheet-close" onclick="closeSheet('sheetDupCheck')" style="margin-left:auto;">✕</button>
+    </div>
+    <div class="sheet-body" id="dupCheckBody"></div>
+  </div>
+</div>
+
+<!-- Bucket List (Today / Future / Converted / Not Eligible / All) -->
+<div class="sheet-overlay" id="sheetBucketList" style="z-index:61;">
+  <div class="sheet" style="max-height:92vh;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h3 id="bucketTitle">Leads</h3><button class="sheet-close" onclick="closeSheet('sheetBucketList')">✕</button></div>
+    <div class="sheet-body" style="padding-top:12px;">
+      <div class="searchbar" style="margin-bottom:12px;">
+        <span><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+        <input type="text" id="bucketSearch" placeholder="Search within this list..." oninput="renderBucketList()">
+      </div>
+      <div id="bucketLeadsList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Lead Detail -->
+<div class="sheet-overlay" id="sheetLeadDetail" style="z-index:62;">
+  <div class="sheet" style="max-height:92vh;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h3 id="ldTitle">Lead</h3><button class="sheet-close" onclick="closeSheet('sheetLeadDetail')">✕</button></div>
+    <div class="sheet-body" id="ldBody"></div>
+  </div>
+</div>
+
+<!-- Not Eligible -->
+<div class="sheet-overlay" id="sheetNotEligible">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h3 style="display:flex;align-items:center;gap:8px;"><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg> Mark Not Eligible</h3><button class="sheet-close" onclick="closeSheet('sheetNotEligible')">✕</button></div>
+    <div class="sheet-body">
+      <input type="hidden" id="ne-leadid">
+      <div class="field">
+        <label>Reason *</label>
+        <textarea id="ne-reason" placeholder="e.g. Low CIBIL, income mismatch, not interested..." style="min-height:80px;"></textarea>
+      </div>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn danger" style="flex:1;" onclick="confirmNotEligible()">Mark Not Eligible</button>
+    </div>
+  </div>
+</div>
+
+<!-- NPA / SMA List -->
+<div class="sheet-overlay" id="sheetNpaList" style="z-index:61;">
+  <div class="sheet" style="max-height:92vh;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h3 style="display:flex;align-items:center;gap:8px;"><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> NPA / SMA Followup</h3><button class="sheet-close" onclick="closeSheet('sheetNpaList')">✕</button></div>
+    <div class="sheet-body" style="padding-top:12px;">
+      <div class="npa-row-head">
+        <div class="searchbar">
+          <span><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+          <input type="text" id="npaSearch" placeholder="Search account, name..." oninput="renderNpaList()">
+        </div>
+        <button class="npa-head-btn" onclick="openAddNpaSheet()" aria-label="Add account"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></button>
+        <button class="npa-head-btn" onclick="exportNpaPdf()" aria-label="Export as PDF"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+      </div>
+      <div id="npaLeadsList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Add NPA/SMA Account -->
+<div class="sheet-overlay" id="sheetAddNpa" style="z-index:62;">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h3 style="display:flex;align-items:center;gap:8px;"><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Add NPA/SMA Account</h3><button class="sheet-close" onclick="closeSheet('sheetAddNpa')">✕</button></div>
+    <div class="sheet-body">
+      <div class="field-row">
+        <div class="field">
+          <label>Loan Account No *</label>
+          <input type="text" id="npa-accno" placeholder="e.g. 38xxxxxxxxx">
+        </div>
+        <div class="field">
+          <label>Borrower Name *</label>
+          <input type="text" id="npa-name" placeholder="Full name">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Mobile Number *</label>
+          <input type="tel" id="npa-mobile" placeholder="10-digit mobile" maxlength="15">
+        </div>
+        <div class="field">
+          <label>Overdue Amount (₹) *</label>
+          <input type="number" id="npa-amount" placeholder="0">
+        </div>
+      </div>
+      <div class="field">
+        <label>Category *</label>
+        <select id="npa-category">
+          <option value="SMA">SMA</option>
+          <option value="Likely NPA">Likely NPA</option>
+          <option value="NPA">NPA</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>First Remark</label>
+        <textarea id="npa-remark" placeholder="What was discussed, what's needed next..." style="min-height:70px;"></textarea>
+      </div>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn gold" style="flex:1;" onclick="createNpaFromSheet()">Add Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- NPA/SMA Detail -->
+<div class="sheet-overlay" id="sheetNpaDetail" style="z-index:63;">
+  <div class="sheet" style="max-height:92vh;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h3 id="npaTitle">Account</h3><button class="sheet-close" onclick="closeSheet('sheetNpaDetail')">✕</button></div>
+    <div class="sheet-body" id="npaBody"></div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   CALL DESK — standalone lead follow-up app.
+   Shares the SAME Supabase row ("loan_tracker_state", id
+   'main') as the main Loan Tracker app, but only ever reads
+   and writes the `.leads` slice of that JSON blob. Before
+   every save it re-fetches the freshest row and merges its
+   leads change into it, so it doesn't clobber a Case/Task/
+   Payout edit that happened in the main app in the meantime.
+========================================================= */
+const DB_TABLE = 'loan_tracker_state';
+const DEFAULT_DB_CFG = {
+  url: 'https://fxscwgwumtmsvmntkynf.supabase.co',
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ4c2N3Z3d1bXRtc3ZtbnRreW5mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0MTA2MTEsImV4cCI6MjEwMTk4NjYxMX0.ILjj_s5zohUY5HEQU_shC7teUgFKENtTCipPaNDaULw',
+  workspace: 'main'
+};
+let SB = null;
+let LEADS = [];               // local working copy of DATA.leads
+let NPA_ACCOUNTS = [];        // local working copy of DATA.npaAccounts
+let LAST_KNOWN_ROW = null;    // the full remote JSON blob, kept so saves can merge cleanly
+let CONNECTED = false;
+let REALTIME_CHANNEL = null;
+
+const LEAD_LOAN_TYPES = ['Personal Loan','Pension Loan','Gold Loan','Car Loan','Home Loan','Other Loan'];
+const LEAD_TYPE_ICON = {'Personal Loan':'creditCard','Pension Loan':'user','Gold Loan':'coins','Car Loan':'car','Home Loan':'home','Other Loan':'fileText'};
+let LEAD_FILTER = 'pending';
+
+function uid(prefix){ return prefix+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+function todayISO(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function daysDiff(iso){ if(!iso) return null; try{ const a=new Date(todayISO()), b=new Date(String(iso).slice(0,10)); if(isNaN(b.getTime())) return null; return Math.round((b-a)/86400000); }catch(e){ return null; } }
+function fmtDate(iso){
+  if(!iso) return '—';
+  try{
+    const datePart = String(iso).slice(0,10);
+    const d = new Date(datePart+'T00:00:00');
+    if(isNaN(d.getTime())) return '—';
+    return d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+  }catch(e){ return '—'; }
+}
+function fmtDateTime(iso){
+  if(!iso) return '—';
+  try{
+    const d = new Date(iso);
+    if(isNaN(d.getTime())) return '—';
+    return d.toLocaleDateString('en-IN',{day:'numeric',month:'short'})+' · '+d.toLocaleTimeString('en-IN',{hour:'numeric',minute:'2-digit'});
+  }catch(e){ return '—'; }
+}
+function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ---------- Modern line-icon set (inline SVG, replaces emoji) ---------- */
+const ICON_PATHS = {
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  pin: '<path d="M12 22s7-7.58 7-12A7 7 0 0 0 5 10c0 4.42 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/>',
+  alertOctagon: '<path d="M7.86 2h8.28L22 7.86v8.28L16.14 22H7.86L2 16.14V7.86L7.86 2z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+  calendar: '<rect x="3" y="4" width="18" height="18" rx="3"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+  checkCircle: '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
+  slash: '<circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>',
+  users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  alertTriangle: '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+  briefcase: '<rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',
+  upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
+  search: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+  x: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+  refreshCw: '<polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>',
+  printer: '<polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>',
+  download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+  phone: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.902.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.908.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>',
+  messageCircle: '<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>',
+  creditCard: '<rect x="1" y="4" width="22" height="16" rx="2.5"/><line x1="1" y1="10" x2="23" y2="10"/>',
+  user: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  coins: '<circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6v4"/><path d="m15.5 14.5 1.5 1.5"/>',
+  car: '<path d="M5 17H3v-6l2-5h12l3 5v6h-2"/><circle cx="7.5" cy="17.5" r="2.3"/><circle cx="16.5" cy="17.5" r="2.3"/>',
+  home: '<path d="M3 9.5 12 2l9 7.5V21a1 1 0 0 1-1 1h-5v-8H9v8H4a1 1 0 0 1-1-1z"/>',
+  fileText: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
+  clipboardList: '<path d="M9 2h6a1 1 0 0 1 1 1v2H8V3a1 1 0 0 1 1-1z"/><rect x="4" y="4" width="16" height="18" rx="2"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="16" y2="15"/>',
+  chevronRight: '<polyline points="9 18 15 12 9 6"/>',
+  hourglass: '<path d="M6 2h12M6 22h12M6 2c0 6 6 6.5 6 10s-6 4-6 10M18 2c0 6-6 6.5-6 10s6 4 6 10"/>'
+};
+function ic(name, size){
+  size = size || 20;
+  return `<svg class="ic" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON_PATHS[name]||''}</svg>`;
+}
+function openSheet(id){ document.getElementById(id).classList.add('active'); }
+function closeSheet(id){ document.getElementById(id).classList.remove('active'); }
+let toastTimer=null;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 2400);
+}
+
+/* ---------- Supabase ---------- */
+function initSupabase(){
+  try{
+    SB = window.supabase.createClient(DEFAULT_DB_CFG.url, DEFAULT_DB_CFG.anonKey, { realtime:{ params:{ eventsPerSecond:5 } } });
+  }catch(e){ console.error('Supabase init failed', e); SB = null; }
+  updateSyncPill();
+}
+function updateSyncPill(){
+  const pill = document.getElementById('syncPill');
+  pill.textContent = CONNECTED ? 'Synced' : 'Offline / retry';
+  pill.classList.toggle('on', CONNECTED);
+}
+async function loadLeads(){
+  if(!SB){ showToast('Database not available'); return; }
+  try{
+    const { data, error } = await SB.from(DB_TABLE).select('data').eq('id', DEFAULT_DB_CFG.workspace).maybeSingle();
+    if(error) throw error;
+    LAST_KNOWN_ROW = (data && data.data) ? data.data : { leads: [] };
+    if(!Array.isArray(LAST_KNOWN_ROW.leads)) LAST_KNOWN_ROW.leads = [];
+    if(!Array.isArray(LAST_KNOWN_ROW.npaAccounts)) LAST_KNOWN_ROW.npaAccounts = [];
+    normalizeLeads(LAST_KNOWN_ROW.leads);
+    normalizeNpaAccounts(LAST_KNOWN_ROW.npaAccounts);
+    LEADS = LAST_KNOWN_ROW.leads;
+    NPA_ACCOUNTS = LAST_KNOWN_ROW.npaAccounts;
+    CONNECTED = true;
+  }catch(e){
+    console.error('Load failed', e);
+    CONNECTED = false;
+    showToast('⚠️ Could not reach database');
+  }
+  updateSyncPill();
+  renderAll();
+}
+function normalizeLeads(leads){
+  leads.forEach(l=>{
+    if(!l.status) l.status = l.converted ? 'converted' : 'pending';
+    if(!l.notEligibleReason) l.notEligibleReason = '';
+    if(!Array.isArray(l.remarksLog)) l.remarksLog = l.remark ? [{date:l.createdAt||new Date().toISOString(), text:l.remark}] : [];
+    if(l.willVisitTodayDate === undefined) l.willVisitTodayDate = '';
+    if(l.company === undefined) l.company = '';
+  });
+}
+function normalizeNpaAccounts(accounts){
+  accounts.forEach(a=>{
+    if(!a.status) a.status = 'open';
+    if(!a.category) a.category = 'SMA';
+    if(!Array.isArray(a.remarksLog)) a.remarksLog = [];
+    if(a.willVisitTodayDate === undefined) a.willVisitTodayDate = '';
+  });
+}
+async function saveLeads(){
+  if(!SB){ showToast('Database not available — change not saved'); return false; }
+  try{
+    // Re-fetch the freshest row right before writing, then splice in only
+    // our leads — this is what keeps a concurrent Case/Task edit in the
+    // main app from being overwritten by a stale Call Desk save.
+    const { data, error } = await SB.from(DB_TABLE).select('data').eq('id', DEFAULT_DB_CFG.workspace).maybeSingle();
+    if(error) throw error;
+    const freshRow = (data && data.data) ? data.data : { leads: [] };
+    freshRow.leads = LEADS;
+    const { error: upErr } = await SB.from(DB_TABLE).upsert({ id: DEFAULT_DB_CFG.workspace, data: freshRow, updated_at: new Date().toISOString() });
+    if(upErr) throw upErr;
+    LAST_KNOWN_ROW = freshRow;
+    CONNECTED = true;
+  }catch(e){
+    console.error('Save failed', e);
+    CONNECTED = false;
+    showToast('⚠️ Saved on screen, but sync failed — will retry');
+    updateSyncPill();
+    return false;
+  }
+  updateSyncPill();
+  return true;
+}
+async function saveNpaAccounts(){
+  if(!SB){ showToast('Database not available — change not saved'); return false; }
+  try{
+    const { data, error } = await SB.from(DB_TABLE).select('data').eq('id', DEFAULT_DB_CFG.workspace).maybeSingle();
+    if(error) throw error;
+    const freshRow = (data && data.data) ? data.data : { leads: [] };
+    freshRow.npaAccounts = NPA_ACCOUNTS;
+    const { error: upErr } = await SB.from(DB_TABLE).upsert({ id: DEFAULT_DB_CFG.workspace, data: freshRow, updated_at: new Date().toISOString() });
+    if(upErr) throw upErr;
+    LAST_KNOWN_ROW = freshRow;
+    CONNECTED = true;
+  }catch(e){
+    console.error('Save failed', e);
+    CONNECTED = false;
+    showToast('⚠️ Saved on screen, but sync failed — will retry');
+    updateSyncPill();
+    return false;
+  }
+  updateSyncPill();
+  return true;
+}
+function subscribeRealtime(){
+  if(!SB) return;
+  if(REALTIME_CHANNEL){ SB.removeChannel(REALTIME_CHANNEL); REALTIME_CHANNEL = null; }
+  REALTIME_CHANNEL = SB.channel('calldesk-'+DEFAULT_DB_CFG.workspace)
+    .on('postgres_changes',
+      { event:'UPDATE', schema:'public', table:DB_TABLE, filter:`id=eq.${DEFAULT_DB_CFG.workspace}` },
+      (payload)=>{
+        const incoming = payload.new && payload.new.data;
+        if(!incoming) return;
+        let changed = false;
+        if(Array.isArray(incoming.leads) && JSON.stringify(incoming.leads) !== JSON.stringify(LEADS)){
+          normalizeLeads(incoming.leads);
+          LEADS = incoming.leads;
+          changed = true;
+        }
+        if(Array.isArray(incoming.npaAccounts) && JSON.stringify(incoming.npaAccounts) !== JSON.stringify(NPA_ACCOUNTS)){
+          normalizeNpaAccounts(incoming.npaAccounts);
+          NPA_ACCOUNTS = incoming.npaAccounts;
+          changed = true;
+        }
+        if(!changed) return;
+        LAST_KNOWN_ROW = incoming;
+        showToast('🔄 Updated — synced from another device');
+        renderAll();
+      })
+    .subscribe(()=>{});
+}
+async function manualSync(){
+  showToast('Syncing…');
+  await loadLeads();
+  showToast(CONNECTED ? 'Synced' : 'Sync failed');
+}
+
+/* ---------- Lead list rendering ---------- */
+// Buckets, per the redesign notes: Today/Overdue/Future are derived purely
+// from followupDate vs today's date — no new stored field. Pending leads
+// with no followupDate are grouped under Future (not yet due).
+function bucketOf(l, today){
+  if(l.status==='converted') return 'converted';
+  if(l.status==='not_eligible') return 'noteligible';
+  if(l.status==='pending'){
+    if(l.followupDate && l.followupDate <= today) return 'today';
+    return 'future';
+  }
+  return 'all';
+}
+function leadMatchesBucket(l, key, today){
+  if(key==='all') return true;
+  if(key==='corporate') return !!l.company;
+  return bucketOf(l, today)===key;
+}
+const BUCKET_DEFS = [
+  {key:'new',        label:'New Lead',    sub:'Add a fresh lead',        icon:'plus',        color:'blue'},
+  {key:'today',      label:'Today',       sub:'Due today (incl. overdue)', icon:'pin',       color:'blue'},
+  {key:'future',     label:'Future',      sub:'Upcoming follow-ups',     icon:'calendar',    color:'gold'},
+  {key:'converted',  label:'Converted',   sub:'Closed as won',           icon:'checkCircle', color:'sage'},
+  {key:'noteligible',label:'Not Eligible',sub:'Closed as not eligible',  icon:'slash',       color:'grey'},
+  {key:'corporate',  label:'Corporate Tie-ups', sub:'Grouped by company', icon:'briefcase',  color:'blue'},
+  {key:'npa',        label:'NPA / SMA',   sub:'Overdue loan accounts',   icon:'alertTriangle',color:'maroon'},
+  {key:'all',        label:'All Leads',   sub:'Everything in one list',  icon:'users',       color:'navy'}
+];
+/* ---------- Avatar helpers: initials + a stable color per person ---------- */
+const AVATAR_PALETTE = ['#E40000','#B30000','#2C6B48','#8134AF','#946B1E','#2F6690','#946B1E','#3D8A62'];
+function initials(name){
+  const parts = String(name||'').trim().split(/\s+/).filter(Boolean);
+  if(!parts.length) return '?';
+  return (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
+}
+function avatarColor(seed){
+  const s = String(seed||'');
+  let h = 0; for(let i=0;i<s.length;i++){ h = (h*31 + s.charCodeAt(i)) >>> 0; }
+  return AVATAR_PALETTE[h % AVATAR_PALETTE.length];
+}
+
+function renderAll(){
+  renderEntry();
+  if(document.getElementById('sheetBucketList').classList.contains('active')) renderBucketList();
+  if(document.getElementById('sheetNpaList').classList.contains('active')) renderNpaList();
+}
+
+const BUCKET_RING = {blue:'ring-blue', gold:'ring-gold', red:'ring-red', sage:'ring-sage', grey:'ring-grey', navy:'ring-blue', maroon:'ring-maroon'};
+function renderEntry(){
+  const today = todayISO();
+  const counts = {new:0, today:0, future:0, converted:0, noteligible:0, all:LEADS.length};
+  LEADS.forEach(l=>{ const b = bucketOf(l, today); if(counts[b]!==undefined) counts[b]++; });
+  counts.npa = NPA_ACCOUNTS.filter(a=>a.status==='open').length;
+  counts.corporate = LEADS.filter(l=>l.company).length;
+
+  const tilesHtml = BUCKET_DEFS.map(b=>{
+    const n = counts[b.key] || 0;
+    const onclick = b.key==='new' ? 'openNewLeadSheet()' : b.key==='npa' ? 'openNpaSheet()' : `openBucketSheet('${b.key}')`;
+    return `
+    <div class="grid-tile" onclick="${onclick}">
+      <div class="gt-icon-wrap ${BUCKET_RING[b.color]||'ring-blue'}">
+        <div class="gt-icon">${ic(b.icon, 30)}</div>
+        ${b.key!=='new' ? `<div class="gt-badge ${n===0?'zero':''}">${n}</div>` : ''}
+      </div>
+      <div class="gt-label">${b.label}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('entryRows').innerHTML = `<div class="entry-grid">${tilesHtml}</div>`;
+}
+
+function onEntrySearch(){
+  const q = (document.getElementById('entrySearch').value||'').toLowerCase().trim();
+  const rowsEl = document.getElementById('entryRows');
+  const resEl = document.getElementById('entrySearchResults');
+  if(!q){
+    resEl.classList.add('hidden'); resEl.innerHTML='';
+    rowsEl.classList.remove('hidden');
+    return;
+  }
+  rowsEl.classList.add('hidden');
+  resEl.classList.remove('hidden');
+  const matched = LEADS.filter(l=>
+    (l.name||'').toLowerCase().includes(q) ||
+    (l.mobile||'').toLowerCase().includes(q) ||
+    (l.loanType||'').toLowerCase().includes(q)
+  );
+  resEl.innerHTML = buildCardListHtml(matched);
+  wireSwipeCards(resEl);
+}
+
+let CURRENT_BUCKET = 'all';
+function openBucketSheet(key){
+  if(key==='npa'){ openNpaSheet(); return; }
+  CURRENT_BUCKET = key;
+  const def = BUCKET_DEFS.find(b=>b.key===key);
+  document.getElementById('bucketTitle').innerHTML = def
+    ? `<span style="display:flex;align-items:center;gap:8px;">${ic(def.icon,18)} ${def.label}</span>`
+    : 'Leads';
+  document.getElementById('bucketSearch').value = '';
+  renderBucketList();
+  openSheet('sheetBucketList');
+}
+function renderBucketList(){
+  const today = todayISO();
+  const q = (document.getElementById('bucketSearch').value||'').toLowerCase().trim();
+  let list = LEADS.filter(l=>leadMatchesBucket(l, CURRENT_BUCKET, today));
+  if(q) list = list.filter(l=>
+    (l.name||'').toLowerCase().includes(q) ||
+    (l.mobile||'').toLowerCase().includes(q) ||
+    (l.loanType||'').toLowerCase().includes(q)
+  );
+  list.sort((a,b)=>{
+    const aOverdue = a.status==='pending' && a.followupDate && a.followupDate<today;
+    const bOverdue = b.status==='pending' && b.followupDate && b.followupDate<today;
+    if(aOverdue!==bOverdue) return aOverdue ? -1 : 1;
+    return (b.createdAt||'').localeCompare(a.createdAt||'');
+  });
+  const bucketListEl = document.getElementById('bucketLeadsList');
+  bucketListEl.innerHTML = buildGroupedHtml(list, CURRENT_BUCKET);
+  wireSwipeCards(bucketListEl);
+}
+
+// Groups a lead list by loan type, in LEAD_LOAN_TYPES order (unknown types last).
+function groupByProduct(list){
+  const map = {};
+  list.forEach(l=>{
+    const t = l.loanType || 'Other';
+    if(!map[t]) map[t] = [];
+    map[t].push(l);
+  });
+  const order = LEAD_LOAN_TYPES.filter(t=>map[t]).concat(Object.keys(map).filter(t=>!LEAD_LOAN_TYPES.includes(t)));
+  return order.map(t=>({type:t, leads:map[t]}));
+}
+// Groups a lead list by company name (used for Corporate Tie-up leads and,
+// within regular buckets, to cluster corporate leads by employer instead of loan type).
+function groupByCompany(list){
+  const map = {};
+  list.forEach(l=>{
+    const c = l.company || 'Unspecified';
+    if(!map[c]) map[c] = [];
+    map[c].push(l);
+  });
+  return Object.keys(map).sort().map(c=>({type:c, leads:map[c]}));
+}
+function knownCompanies(){
+  const set = new Set();
+  LEADS.forEach(l=>{ if(l.company) set.add(l.company); });
+  return Array.from(set).sort();
+}
+
+// Collapsible per-product accordion for a bucket sheet, each with its own
+// small PDF-export button. Collapsed by default.
+function buildGroupedHtml(list, bucketKey){
+  if(!list.length){
+    return `<div class="empty"><div class="icon">${ic('users',34)}</div><div class="title">No leads found</div><div class="desc">Tap + to add a lead</div></div>`;
+  }
+  if(bucketKey==='corporate'){
+    const groups = groupByCompany(list);
+    return groups.map(g=>`
+    <div class="prod-group">
+      <div class="prod-group-head" onclick="toggleGroup(this)">
+        <span class="pg-chev">${ic('chevronRight',13)}</span>
+        <span class="pg-icon">${ic('briefcase',15)}</span>
+        <span class="pg-name">${escapeHtml(g.type)}</span>
+        <span class="pg-count">${g.leads.length}</span>
+        <button class="pg-export" onclick="event.stopPropagation(); exportCompanyPdf('${escapeHtml(g.type).replace(/'/g,"\\'")}')" aria-label="Export this company as PDF">${ic('download',13)} PDF</button>
+      </div>
+      <div class="prod-group-body hidden">${buildCardListHtml(g.leads)}</div>
+    </div>`).join('');
+  }
+  // Regular buckets: split corporate leads (grouped by company) from
+  // regular leads (grouped by loan type), so corporate employees don't
+  // get mixed into ordinary product groups.
+  const corporateLeads = list.filter(l=>l.company);
+  const regularLeads = list.filter(l=>!l.company);
+  const corporateHtml = corporateLeads.length ? groupByCompany(corporateLeads).map(g=>`
+    <div class="prod-group">
+      <div class="prod-group-head" onclick="toggleGroup(this)">
+        <span class="pg-chev">${ic('chevronRight',13)}</span>
+        <span class="pg-icon">${ic('briefcase',15)}</span>
+        <span class="pg-name">${escapeHtml(g.type)}</span>
+        <span class="pg-count">${g.leads.length}</span>
+        <button class="pg-export" onclick="event.stopPropagation(); exportCompanyPdf('${escapeHtml(g.type).replace(/'/g,"\\'")}')" aria-label="Export this company as PDF">${ic('download',13)} PDF</button>
+      </div>
+      <div class="prod-group-body hidden">${buildCardListHtml(g.leads)}</div>
+    </div>`).join('') : '';
+  const groups = groupByProduct(regularLeads);
+  const regularHtml = groups.map(g=>{
+    const iconName = LEAD_TYPE_ICON[g.type] || 'fileText';
+    return `
+    <div class="prod-group">
+      <div class="prod-group-head" onclick="toggleGroup(this)">
+        <span class="pg-chev">${ic('chevronRight',13)}</span>
+        <span class="pg-icon">${ic(iconName,15)}</span>
+        <span class="pg-name">${escapeHtml(g.type)}</span>
+        <span class="pg-count">${g.leads.length}</span>
+        <button class="pg-export" onclick="event.stopPropagation(); exportGroupPdf('${bucketKey}', '${escapeHtml(g.type).replace(/'/g,"\\'")}')" aria-label="Export this group as PDF">${ic('download',13)} PDF</button>
+      </div>
+      <div class="prod-group-body hidden">${buildCardListHtml(g.leads)}</div>
+    </div>`;
+  }).join('');
+  return corporateHtml + regularHtml;
+}
+function toggleGroup(headEl){
+  const group = headEl.closest('.prod-group');
+  const body = group.querySelector('.prod-group-body');
+  body.classList.toggle('hidden');
+  group.classList.toggle('open', !body.classList.contains('hidden'));
+  if(!body.classList.contains('hidden')) wireSwipeCards(body);
+}
+
+// Shared lead-card markup — used by the top search results, each bucket
+// sheet's list, and (unchanged in spirit) the old always-visible list.
+function waNumber(mobile){
+  const digits = String(mobile||'').replace(/\D/g,'');
+  return digits.length===10 ? '91'+digits : digits;
+}
+function buildCardListHtml(list){
+  if(!list.length){
+    return `<div class="empty"><div class="icon">${ic('users',34)}</div><div class="title">No leads found</div><div class="desc">Tap + to add a lead</div></div>`;
+  }
+  const today = todayISO();
+  const STATUS_PILL = {
+    pending: {cls:'gold', label: ic('hourglass',13)+' Pending'},
+    converted: {cls:'sage', label: ic('checkCircle',13)+' Converted'},
+    not_eligible: {cls:'red', label: ic('slash',13)+' Not Eligible'}
+  };
+  const ACCENT = {pending:'acc-gold', converted:'acc-sage', not_eligible:'acc-red'};
+  return list.map(l=>{
+    const overdue = l.status==='pending' && l.followupDate && l.followupDate < today;
+    const dueToday = l.status==='pending' && l.followupDate === today;
+    const iconName = LEAD_TYPE_ICON[l.loanType] || 'fileText';
+    const sp = STATUS_PILL[l.status] || STATUS_PILL.pending;
+    const latestNote = l.remarksLog && l.remarksLog.length ? l.remarksLog[l.remarksLog.length-1] : null;
+    const shining = l.willVisitTodayDate === today;
+    const ringCls = l.status!=='pending' ? 'ring-grey' : (overdue||dueToday) ? 'ring-hot' : 'ring-gold';
+    return `
+    <div class="list-card ${overdue ? 'acc-red' : ACCENT[l.status]} ${shining?'glow-today':''}" data-swipe-id="${l.id}" data-swipe-kind="lead" onclick="openLeadDetail('${l.id}')">
+      <div class="list-card-body">
+        <div class="lc-top">
+          <div class="lc-avatar-ring ${ringCls}">
+            <div class="lc-avatar"><div class="lc-avatar-inner" style="background:${avatarColor(l.name)};">${initials(l.name)}</div></div>
+          </div>
+          <div class="lc-who">
+            <p class="lc-name">${escapeHtml(l.name)}</p>
+            <div class="lc-id mono">${escapeHtml(l.mobile)}</div>
+          </div>
+          <span class="pill ${sp.cls}">${sp.label}</span>
+        </div>
+        <div class="lc-actions">
+          <a class="act-btn call" href="tel:${escapeHtml(l.mobile)}" onclick="event.stopPropagation()">${ic('phone',14)} Call ${escapeHtml(l.mobile)}</a>
+          <a class="act-btn wa" href="https://wa.me/${waNumber(l.mobile)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${ic('messageCircle',14)} WhatsApp</a>
+        </div>
+        <div class="lc-meta">
+          <span class="pill navy">${ic(iconName,13)} ${escapeHtml(l.loanType||'—')}</span>
+          ${l.company ? `<span class="pill" style="background:linear-gradient(135deg,#FF3D3D,#E40000);color:#fff;">${ic('briefcase',12)} ${escapeHtml(l.company)}</span>` : ''}
+          ${l.status==='pending' && l.followupDate ? `<span class="pill ${overdue||dueToday?'red':'navy'}">${overdue?ic('alertOctagon',12)+' Overdue':dueToday?ic('pin',12)+' Today':'Follow-up'} ${fmtDate(l.followupDate)}</span>` : ''}
+        </div>
+        ${shining
+          ? `<div class="card-comment shining"><div class="cc-dot">✨</div><div class="cc-body"><div class="cc-meta">Will visit today</div>${latestNote ? `<div class="cc-text">${escapeHtml(latestNote.text)}</div>` : ''}</div></div>`
+          : (latestNote ? `<div class="card-comment"><div class="cc-dot">${initials(l.name)[0]||'•'}</div><div class="cc-body"><div class="cc-meta">${fmtDateTime(latestNote.date)}</div><div class="cc-text">${escapeHtml(latestNote.text)}</div></div></div>` : '')}
+      </div>
+    </div>`;
+  }).join('');
+}
+function isToday(iso){ if(!iso) return false; return iso.slice(0,10) === todayISO(); }
+
+/* ---------- Swipe-to-act on lead cards ----------
+   Swipe right on a pending lead -> quick "contacted today" remark.
+   Swipe left on a pending lead -> snooze follow-up by 3 days.
+   Attached after every render via wireSwipeCards(). Non-pending
+   cards (converted/not_eligible) are not swipeable. */
+function wireSwipeCards(container){
+  if(!container) return;
+  container.querySelectorAll('.list-card[data-swipe-id]').forEach(card=>{
+    if(card.dataset.swipeWired) return;
+    card.dataset.swipeWired = '1';
+    let startX=0, startY=0, dx=0, dragging=false, decided=false, isHoriz=false;
+    const threshold = 76;
+    card.addEventListener('touchstart', e=>{
+      const t = e.touches[0]; startX=t.clientX; startY=t.clientY; dx=0; dragging=true; decided=false; isHoriz=false;
+    }, {passive:true});
+    card.addEventListener('touchmove', e=>{
+      if(!dragging) return;
+      const t = e.touches[0];
+      dx = t.clientX - startX;
+      const dy = t.clientY - startY;
+      if(!decided){
+        if(Math.abs(dx) > 8 || Math.abs(dy) > 8){ decided = true; isHoriz = Math.abs(dx) > Math.abs(dy); }
+      }
+      if(isHoriz){
+        card.style.transform = `translateX(${dx*0.5}px)`;
+        card.style.transition = 'none';
+      }
+    }, {passive:true});
+    card.addEventListener('touchend', ()=>{
+      dragging = false;
+      card.style.transition = 'transform .2s ease';
+      card.style.transform = 'translateX(0)';
+      if(isHoriz && Math.abs(dx) > threshold){
+        const id = card.dataset.swipeId;
+        const kind = card.dataset.swipeKind || 'lead';
+        if(dx > 0){ kind==='npa' ? quickNpaContacted(id) : quickLeadContacted(id); }
+        else { kind==='npa' ? quickNpaSnooze(id) : quickLeadSnooze(id); }
+      }
+    });
+  });
+}
+async function quickLeadContacted(id){
+  const l = LEADS.find(x=>x.id===id); if(!l || l.status!=='pending') return;
+  if(!Array.isArray(l.remarksLog)) l.remarksLog = [];
+  const now = new Date().toISOString();
+  const text = 'Contacted today.';
+  l.remarksLog.push({date:now, text});
+  l.remark = text;
+  renderAll();
+  showToast('✨ Marked contacted today');
+  await saveLeads();
+  renderAll();
+}
+async function quickLeadSnooze(id){
+  const l = LEADS.find(x=>x.id===id); if(!l || l.status!=='pending') return;
+  const base = l.followupDate && l.followupDate >= todayISO() ? new Date(l.followupDate+'T00:00:00') : new Date();
+  base.setDate(base.getDate()+3);
+  l.followupDate = base.getFullYear()+'-'+String(base.getMonth()+1).padStart(2,'0')+'-'+String(base.getDate()).padStart(2,'0');
+  renderAll();
+  showToast('Snoozed 3 days');
+  await saveLeads();
+  renderAll();
+}
+async function quickNpaContacted(id){
+  const a = NPA_ACCOUNTS.find(x=>x.id===id); if(!a || a.status!=='open') return;
+  if(!Array.isArray(a.remarksLog)) a.remarksLog = [];
+  const now = new Date().toISOString();
+  a.remarksLog.push({date:now, text:'Contacted today.'});
+  renderAll();
+  showToast('✨ Marked contacted today');
+  await saveNpaAccounts();
+  renderAll();
+}
+async function quickNpaSnooze(id){
+  showToast('Add a remark with the new follow-up plan');
+}
+
+/* ---------- PDF export (html2canvas + jsPDF, A4) ---------- */
+const PRINT_STATUS_LABEL = {pending:'Pending', converted:'Converted', not_eligible:'Not Eligible'};
+function bucketLabel(key){
+  const def = BUCKET_DEFS.find(b=>b.key===key);
+  return def ? def.label : key;
+}
+function latestRemarkText(l){
+  const n = l.remarksLog && l.remarksLog.length ? l.remarksLog[l.remarksLog.length-1] : null;
+  return n ? (isToday(n.date) ? 'Today: '+n.text : fmtDateTime(n.date)+' — '+n.text) : '—';
+}
+// sections: [{ heading, groups: [{type, leads}] }]
+function printTemplateHtml(title, sections){
+  const rowsForGroup = (leads)=> leads.map(l=>`
+    <tr>
+      <td style="padding:6px 8px;border:1px solid #ddd;">${escapeHtml(l.name)}</td>
+      <td style="padding:6px 8px;border:1px solid #ddd;white-space:nowrap;">${escapeHtml(l.mobile)}</td>
+      <td style="padding:6px 8px;border:1px solid #ddd;white-space:nowrap;">${l.followupDate?fmtDate(l.followupDate):'—'}</td>
+      <td style="padding:6px 8px;border:1px solid #ddd;">${PRINT_STATUS_LABEL[l.status]||l.status}</td>
+      <td style="padding:6px 8px;border:1px solid #ddd;">${escapeHtml(latestRemarkText(l))}</td>
+    </tr>`).join('');
+  const groupTable = (g)=>`
+    <div style="font-size:12.5px;font-weight:700;color:#333;margin:10px 0 5px;">${escapeHtml(g.type)} (${g.leads.length})</div>
+    <table style="width:100%;border-collapse:collapse;font-size:10.5px;font-family:Arial,sans-serif;margin-bottom:6px;">
+      <thead><tr style="background:#F1F3F4;">
+        <th style="text-align:left;padding:6px 8px;border:1px solid #ddd;">Name</th>
+        <th style="text-align:left;padding:6px 8px;border:1px solid #ddd;">Mobile</th>
+        <th style="text-align:left;padding:6px 8px;border:1px solid #ddd;">Follow-up</th>
+        <th style="text-align:left;padding:6px 8px;border:1px solid #ddd;">Status</th>
+        <th style="text-align:left;padding:6px 8px;border:1px solid #ddd;">Latest Remark</th>
+      </tr></thead>
+      <tbody>${rowsForGroup(g.leads)}</tbody>
+    </table>`;
+  const sectionsHtml = sections.map(sec=>{
+    const body = sec.customHtml ? sec.customHtml
+      : (sec.groups.length ? sec.groups.map(groupTable).join('') : '<div style="font-size:11px;color:#888;margin:6px 0;">No leads in this bucket.</div>');
+    return `
+    <div style="margin-top:18px;">
+      <div style="font-size:15px;font-weight:800;color:#1E3A5F;border-bottom:2px solid #1E3A5F;padding-bottom:4px;">${escapeHtml(sec.heading)}</div>
+      ${body}
+    </div>`;
+  }).join('');
+  return `
+  <div style="font-family:Arial,sans-serif;padding:26px;width:748px;color:#111;background:#fff;">
+    <div style="font-size:18px;font-weight:800;color:#1E3A5F;">${escapeHtml(title)}</div>
+    <div style="font-size:11px;color:#666;margin-top:2px;">Generated ${fmtDate(todayISO())}</div>
+    ${sectionsHtml}
+  </div>`;
+}
+function npaCategoryLabel(cat){ return cat || 'SMA'; }
+function npaTableHtml(list){
+  if(!list.length) return '<div style="font-size:11px;color:#888;margin:6px 0;">No accounts.</div>';
+  const rows = list.map(a=>`
+    <tr>
+      <td style="padding:6px 8px;border:1px solid #ddd;">${escapeHtml(a.accountNo)}</td>
+      <td style="padding:6px 8px;border:1px solid #ddd;">${escapeHtml(a.name)}</td>
+      <td style="padding:6px 8px;border:1px solid #ddd;white-space:nowrap;">${escapeHtml(a.mobile)}</td>
+      <td style="padding:6px 8px;border:1px solid #ddd;white-space:nowrap;">₹${Number(a.overdueAmount||0).toLocaleString('en-IN')}</td>
+      <td style="padding:6px 8px;border:1px solid #ddd;">${escapeHtml(npaCategoryLabel(a.category))}</td>
+      <td style="padding:6px 8px;border:1px solid #ddd;">${escapeHtml(latestRemarkText(a))}</td>
+    </tr>`).join('');
+  return `
+    <table style="width:100%;border-collapse:collapse;font-size:10.5px;font-family:Arial,sans-serif;margin-top:6px;">
+      <thead><tr style="background:#F1F3F4;">
+        <th style="text-align:left;padding:6px 8px;border:1px solid #ddd;">Account No</th>
+        <th style="text-align:left;padding:6px 8px;border:1px solid #ddd;">Name</th>
+        <th style="text-align:left;padding:6px 8px;border:1px solid #ddd;">Mobile</th>
+        <th style="text-align:left;padding:6px 8px;border:1px solid #ddd;">Overdue Amt</th>
+        <th style="text-align:left;padding:6px 8px;border:1px solid #ddd;">Category</th>
+        <th style="text-align:left;padding:6px 8px;border:1px solid #ddd;">Latest Remark</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+async function renderHtmlToPdf(html, filename){
+  const root = document.getElementById('printRoot');
+  root.innerHTML = html;
+  showToast('Preparing PDF…');
+  try{
+    const canvas = await html2canvas(root, {scale:2, backgroundColor:'#ffffff', useCORS:true});
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p','mm','a4');
+    const pageWidth = 210, pageHeight = 297;
+    const imgWidth = pageWidth;
+    const imgHeight = canvas.height * imgWidth / canvas.width;
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    let heightLeft = imgHeight, position = 0;
+    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+    while(heightLeft > 0){
+      position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+    }
+    pdf.save(filename);
+    showToast('PDF saved');
+  }catch(e){
+    console.error('PDF export failed', e);
+    showToast('⚠️ PDF export failed — check internet connection');
+  }finally{
+    root.innerHTML = '';
+  }
+}
+function exportGroupPdf(bucketKey, productType){
+  const today = todayISO();
+  const leads = LEADS.filter(l=>leadMatchesBucket(l, bucketKey, today) && (l.loanType||'Other')===productType);
+  const title = `${bucketLabel(bucketKey)} — ${productType}`;
+  const html = printTemplateHtml(title, [{ heading: bucketLabel(bucketKey), groups: [{type: productType, leads}] }]);
+  renderHtmlToPdf(html, `Leads-${bucketLabel(bucketKey)}-${productType}-${today}.pdf`.replace(/\s+/g,'_'));
+}
+function exportCompanyPdf(company){
+  const today = todayISO();
+  const leads = LEADS.filter(l=>l.company===company);
+  const title = `${company} Employee List`;
+  const html = printTemplateHtml(title, [{ heading: title, groups: [{type: 'Employees', leads}] }]);
+  renderHtmlToPdf(html, `${company}-Employee-List-${today}.pdf`.replace(/\s+/g,'_'));
+}
+function exportAllPdf(){
+  const today = todayISO();
+  const keys = ['today','future','converted','noteligible'];
+  const sections = keys.map(k=>{
+    const list = LEADS.filter(l=>leadMatchesBucket(l, k, today));
+    return { heading: bucketLabel(k), groups: groupByProduct(list) };
+  });
+  const npaSorted = sortNpaList(NPA_ACCOUNTS.filter(a=>a.status==='open'));
+  sections.push({ heading: 'NPA / SMA Followup', groups: [], customHtml: npaTableHtml(npaSorted) });
+  const html = printTemplateHtml('Full Leads Report — All Tabs', sections);
+  renderHtmlToPdf(html, `Leads-Full-Report-${today}.pdf`);
+}
+function exportNpaPdf(){
+  const q = (document.getElementById('npaSearch').value||'').toLowerCase().trim();
+  let list = NPA_ACCOUNTS.filter(a=>a.status==='open');
+  if(q) list = list.filter(a=>
+    (a.accountNo||'').toLowerCase().includes(q) ||
+    (a.name||'').toLowerCase().includes(q) ||
+    (a.mobile||'').toLowerCase().includes(q)
+  );
+  list = sortNpaList(list);
+  const html = printTemplateHtml('NPA / SMA Followup', [{ heading:'NPA / SMA Followup', groups:[], customHtml: npaTableHtml(list) }]);
+  renderHtmlToPdf(html, `NPA-SMA-Followup-${todayISO()}.pdf`);
+}
+
+/* ---------- Add lead ---------- */
+function openNewLeadSheet(){
+  const sel = document.getElementById('ld-loantype');
+  sel.innerHTML = LEAD_LOAN_TYPES.map(lt=>`<option value="${escapeHtml(lt)}">${escapeHtml(lt)}</option>`).join('');
+  ['ld-name','ld-mobile','ld-company','ld-followup','ld-remark'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('ld-company-list').innerHTML = knownCompanies().map(c=>`<option value="${escapeHtml(c)}">`).join('');
+  openSheet('sheetNewLead');
+}
+/* ---------- Bulk import (Corporate Tie-up CSV) ---------- */
+let BULK_IMPORT_ROWS = [];
+function openBulkImportSheet(){
+  document.getElementById('bi-company').value = '';
+  document.getElementById('bi-company-list').innerHTML = knownCompanies().map(c=>`<option value="${escapeHtml(c)}">`).join('');
+  const sel = document.getElementById('bi-loantype');
+  sel.innerHTML = LEAD_LOAN_TYPES.map(lt=>`<option value="${escapeHtml(lt)}">${escapeHtml(lt)}</option>`).join('');
+  document.getElementById('bi-file').value = '';
+  document.getElementById('bi-preview').innerHTML = '';
+  document.getElementById('bi-confirm-btn').disabled = true;
+  BULK_IMPORT_ROWS = [];
+  openSheet('sheetBulkImport');
+}
+// Parses a simple CSV (name,mobile,company). Company forward-fills from the
+// last non-blank value, per the requested "first row fills the rest" behavior.
+// Handles a header row if present (skips it), quoted fields, and blank lines.
+function parseCsvSimple(text){
+  const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(l=>l.length);
+  if(!lines.length) return [];
+  const splitLine = (line)=>{
+    const out = []; let cur=''; let inQuotes=false;
+    for(let i=0;i<line.length;i++){
+      const ch = line[i];
+      if(ch==='"'){ inQuotes = !inQuotes; continue; }
+      if(ch===',' && !inQuotes){ out.push(cur.trim()); cur=''; continue; }
+      cur+=ch;
+    }
+    out.push(cur.trim());
+    return out;
+  };
+  let rows = lines.map(splitLine);
+  // Drop a header row if the first cell looks like a label, not a name+mobile pair
+  const first = rows[0].map(c=>c.toLowerCase());
+  if(first.includes('name') || first.includes('mobile') || first.includes('company')){
+    rows = rows.slice(1);
+  }
+  let lastCompany = '';
+  const parsed = rows.map(cols=>{
+    const name = (cols[0]||'').trim();
+    const mobile = (cols[1]||'').trim();
+    let company = (cols[2]||'').trim();
+    if(company) lastCompany = company; else company = lastCompany;
+    return {name, mobile, company};
+  }).filter(r=>r.name || r.mobile);
+  return parsed;
+}
+function handleBulkImportFile(evt){
+  const file = evt.target.files && evt.target.files[0];
+  const previewEl = document.getElementById('bi-preview');
+  const confirmBtn = document.getElementById('bi-confirm-btn');
+  if(!file){ previewEl.innerHTML=''; confirmBtn.disabled=true; BULK_IMPORT_ROWS=[]; return; }
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const rows = parseCsvSimple(String(reader.result||''));
+      const valid = rows.filter(r=>r.name && r.mobile);
+      const invalidCount = rows.length - valid.length;
+      BULK_IMPORT_ROWS = valid;
+      if(!valid.length){
+        previewEl.innerHTML = `<p class="small" style="color:var(--red);margin-top:10px;">No valid rows found. Make sure each row has at least a name and mobile number.</p>`;
+        confirmBtn.disabled = true;
+        return;
+      }
+      const rowsHtml = valid.slice(0,8).map(r=>`
+        <tr><td>${escapeHtml(r.name)}</td><td class="mono">${escapeHtml(r.mobile)}</td><td>${escapeHtml(r.company||'—')}</td></tr>
+      `).join('');
+      previewEl.innerHTML = `
+        <table class="bi-preview-table">
+          <thead><tr><th>Name</th><th>Mobile</th><th>Company</th></tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+        ${valid.length>8 ? `<p class="small muted mt-8">+ ${valid.length-8} more row${valid.length-8===1?'':'s'}</p>` : ''}
+        <div class="bi-summary ${invalidCount?'warn':''}">${ic('checkCircle',13)} ${valid.length} lead${valid.length===1?'':'s'} ready to import${invalidCount?` · ${invalidCount} row${invalidCount===1?'':'s'} skipped (missing name/mobile)`:''}</div>
+      `;
+      confirmBtn.disabled = false;
+    }catch(e){
+      console.error('CSV parse failed', e);
+      previewEl.innerHTML = `<p class="small" style="color:var(--red);margin-top:10px;">Could not read this file. Make sure it's a plain CSV.</p>`;
+      confirmBtn.disabled = true;
+    }
+  };
+  reader.onerror = ()=>{
+    previewEl.innerHTML = `<p class="small" style="color:var(--red);margin-top:10px;">Could not read this file.</p>`;
+    confirmBtn.disabled = true;
+  };
+  reader.readAsText(file);
+}
+async function confirmBulkImport(){
+  const company = document.getElementById('bi-company').value.trim();
+  const loanType = document.getElementById('bi-loantype').value;
+  if(!company){ showToast('Please enter a company name'); return; }
+  if(!BULK_IMPORT_ROWS.length){ showToast('No rows to import'); return; }
+  const now = new Date().toISOString();
+  const newLeads = BULK_IMPORT_ROWS.map(r=>({
+    id: uid('lead'), name: r.name, mobile: r.mobile, loanType,
+    company: r.company || company, followupDate:'', remark:'',
+    createdAt: now, converted:false, convertedCaseId:'',
+    status:'pending', notEligibleReason:'', remarksLog:[]
+  }));
+  LEADS.push(...newLeads);
+  closeSheet('sheetBulkImport');
+  renderAll();
+  showToast('Saving…');
+  const ok = await saveLeads();
+  showToast(ok ? `Imported ${newLeads.length} leads for ${company}` : 'Imported locally — will sync when connection is back');
+}
+/* ---------- Fuzzy match for duplicate-lead detection (checked AFTER save) ---------- */
+function fuzzyScore(query, target){
+  query = (query||'').toLowerCase().trim();
+  target = (target||'').toLowerCase();
+  if(!query) return 0;
+  if(target===query) return 100;
+  if(target.startsWith(query)) return 90;
+  if(target.includes(query)) return 70;
+  let ti=0, matched=0;
+  for(let qi=0; qi<query.length; qi++){
+    const ch = query[qi];
+    const found = target.indexOf(ch, ti);
+    if(found===-1) continue;
+    matched++; ti = found+1;
+  }
+  const ratio = matched/query.length;
+  return ratio>=0.7 ? Math.round(ratio*55) : 0;
+}
+async function createLeadFromSheet(){
+  const name = document.getElementById('ld-name').value.trim();
+  const mobile = document.getElementById('ld-mobile').value.trim();
+  const loanType = document.getElementById('ld-loantype').value;
+  const company = document.getElementById('ld-company').value.trim();
+  const followupDate = document.getElementById('ld-followup').value;
+  const remark = document.getElementById('ld-remark').value.trim();
+  if(!name || !mobile){ showToast('Please fill Name and Mobile'); return; }
+  const now = new Date().toISOString();
+  const lead = {
+    id: uid('lead'), name, mobile, loanType, followupDate, remark, company,
+    createdAt: now, converted:false, convertedCaseId:'',
+    status:'pending', notEligibleReason:'',
+    remarksLog: remark ? [{date:now, text:remark}] : []
+  };
+  // check for similar existing leads BEFORE pushing, so the new lead itself isn't matched
+  const scored = LEADS.map(l=>({l, score: Math.max(fuzzyScore(name, l.name), l.mobile===mobile ? 100 : (l.mobile && mobile && l.mobile.includes(mobile) ? 65 : 0))}))
+    .filter(x=>x.score>0)
+    .sort((a,b)=>b.score-a.score)
+    .slice(0,5);
+
+  LEADS.push(lead);
+  closeSheet('sheetNewLead');
+  renderAll();
+  showToast('Saving…');
+  const ok = await saveLeads();
+  showToast(ok ? 'Lead added: '+name : 'Added locally — will sync when connection is back');
+
+  if(scored.length){
+    showDupCheckSheet(scored, lead.id);
+  }
+}
+/* ---------- Post-save duplicate-check popup ---------- */
+function showDupCheckSheet(scored, newLeadId){
+  const body = document.getElementById('dupCheckBody');
+  body.innerHTML = `
+    <p class="small muted mt-8" style="margin-bottom:12px;">This new lead looks similar to ${scored.length>1?'these existing leads':'an existing lead'}. Take a look before continuing:</p>
+    ${scored.map(({l})=>{
+      const created = l.createdAt ? fmtDate(l.createdAt.slice(0,10)) : '—';
+      return `
+      <div class="dup-item" onclick="closeSheet('sheetDupCheck'); openLeadDetail('${l.id}');">
+        <div class="dup-av">${initials(l.name)}</div>
+        <div class="dup-info">
+          <div class="dup-name">${escapeHtml(l.name)} · ${escapeHtml(l.mobile)}</div>
+          <div class="dup-meta">${escapeHtml(l.loanType||'—')} · added ${created}</div>
+        </div>
+      </div>`;
+    }).join('')}
+    <button type="button" class="dup-notdup mt-8" onclick="closeSheet('sheetDupCheck')">Ignore and keep new lead</button>
+  `;
+  openSheet('sheetDupCheck');
+}
+
+/* ---------- Lead detail (remarks timeline, status actions) ---------- */
+let CURRENT_LEAD_ID = null;
+function openLeadDetail(id){
+  CURRENT_LEAD_ID = id;
+  try{
+    renderLeadDetail();
+    openSheet('sheetLeadDetail');
+  }catch(e){
+    console.error('openLeadDetail failed', e);
+    showToast('Could not open this lead — data issue');
+  }
+}
+const QUICK_REMARKS = [
+  {emoji:'📞', label:'Called', text:'Called — no answer yet.'},
+  {emoji:'💬', label:'Texted', text:'Sent a WhatsApp message, awaiting reply.'},
+  {emoji:'✅', label:'Follow-up set', text:'Spoke with them, follow-up scheduled.'}
+];
+function renderLeadDetail(){
+  const l = LEADS.find(x=>x.id===CURRENT_LEAD_ID);
+  if(!l){ closeSheet('sheetLeadDetail'); return; }
+  document.getElementById('ldTitle').textContent = l.name || 'Lead';
+  const iconName = LEAD_TYPE_ICON[l.loanType] || 'fileText';
+  const STATUS_PILL = {
+    pending: {cls:'gold', label: ic('hourglass',13)+' Pending'},
+    converted: {cls:'sage', label: ic('checkCircle',13)+' Converted'},
+    not_eligible: {cls:'red', label: ic('slash',13)+' Not Eligible'}
+  };
+  const sp = STATUS_PILL[l.status] || STATUS_PILL.pending;
+  const timeline = [...(Array.isArray(l.remarksLog) ? l.remarksLog : [])]
+    .filter(t=>t && t.date)
+    .sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  let daysInPipeline = 0;
+  try{
+    if(l.createdAt){ const d = daysDiff(String(l.createdAt).slice(0,10)); daysInPipeline = d!==null ? Math.max(0, d*-1) : 0; }
+  }catch(e){ daysInPipeline = 0; }
+  const callCount = timeline.length;
+  const ringCls = l.status==='pending' ? '' : 'grey';
+
+  document.getElementById('ldBody').innerHTML = `
+    <div class="profile-head">
+      <div class="profile-avatar-ring ${ringCls}">
+        <div class="profile-avatar"><div class="profile-avatar-inner" style="background:${avatarColor(l.name)};">${initials(l.name)}</div></div>
+      </div>
+      <h3 class="profile-name">${escapeHtml(l.name)}</h3>
+      <div class="profile-bio">${ic(iconName,13)} ${escapeHtml(l.loanType||'—')} · ${escapeHtml(l.mobile)}</div>
+      <div class="lc-meta" style="justify-content:center;margin-top:8px;">
+        <span class="pill ${sp.cls}">${sp.label}</span>
+        ${l.company ? `<span class="pill" style="background:linear-gradient(135deg,#FF3D3D,#E40000);color:#fff;">${ic('briefcase',12)} ${escapeHtml(l.company)}</span>` : ''}
+      </div>
+      <div class="profile-stats">
+        <div class="st"><div class="n">${daysInPipeline}</div><div class="l">Days</div></div>
+        <div class="st"><div class="n">${callCount}</div><div class="l">Remarks</div></div>
+        <div class="st"><div class="n">${l.followupDate ? fmtDate(l.followupDate) : '—'}</div><div class="l" style="font-size:9px;">Next follow-up</div></div>
+      </div>
+    </div>
+    <div class="lc-actions" style="margin-top:2px;margin-bottom:2px;">
+      <a class="act-btn call" href="tel:${escapeHtml(l.mobile)}">${ic('phone',14)} Call ${escapeHtml(l.mobile)}</a>
+      <a class="act-btn wa" href="https://wa.me/${waNumber(l.mobile)}" target="_blank" rel="noopener">${ic('messageCircle',14)} WhatsApp</a>
+    </div>
+    <div class="field mt-8">
+      <label>Mobile Number</label>
+      <input type="tel" id="ldd-mobile" value="${escapeHtml(l.mobile)}" maxlength="15" onchange="updateLeadMobile('${l.id}', this.value)">
+    </div>
+    <div class="field">
+      <label>Company (Corporate Tie-up)</label>
+      <input type="text" id="ldd-company" value="${escapeHtml(l.company||'')}" placeholder="Leave blank if not a corporate lead" list="ldd-company-list" onchange="updateLeadCompany('${l.id}', this.value)">
+      <datalist id="ldd-company-list">${knownCompanies().map(c=>`<option value="${escapeHtml(c)}">`).join('')}</datalist>
+    </div>
+    ${l.status==='not_eligible' && l.notEligibleReason ? `<p class="small mt-8" style="color:var(--red);"><b>Reason:</b> ${escapeHtml(l.notEligibleReason)}</p>` : ''}
+
+    ${l.status==='pending' ? `
+    <div class="field mt-8">
+      <label>Next Follow-up Date</label>
+      <input type="date" id="ldd-followup" value="${l.followupDate||''}" onchange="updateLeadFollowup('${l.id}', this.value)">
+    </div>
+    <label class="visit-today-check">
+      <input type="checkbox" ${l.willVisitTodayDate===todayISO()?'checked':''} onchange="toggleWillVisitToday('${l.id}', this.checked)">
+      <span>✨ Will visit today</span>
+    </label>
+    <div class="field">
+      <label>Add a Remark</label>
+      <div class="remark-quick">
+        ${QUICK_REMARKS.map(q=>`<button type="button" onclick="useQuickRemark('${escapeHtml(q.text).replace(/'/g,"\\'")}')"><span class="rq-emoji">${q.emoji}</span>${q.label}</button>`).join('')}
+      </div>
+      <textarea id="ldd-newremark" placeholder="What happened on this call..." style="min-height:70px;"></textarea>
+    </div>
+    <button class="btn gold" style="width:100%;margin-bottom:16px;" onclick="addRemark('${l.id}')">${ic('plus',14)} Add Remark</button>
+    <div class="btn-row" style="display:flex;gap:8px;margin-bottom:18px;">
+      <button class="btn outline sm" onclick="markLeadConverted('${l.id}')">${ic('checkCircle',14)} Converted</button>
+      <button class="btn outline sm" onclick="openNotEligibleSheet('${l.id}')">${ic('slash',14)} Not Eligible</button>
+    </div>
+    ` : `
+    <button class="btn outline" style="width:100%;margin:14px 0 18px;" onclick="reopenLead('${l.id}')">↺ Reopen as Pending</button>
+    `}
+
+    <h3 style="font-size:13.5px;margin-bottom:6px;display:flex;align-items:center;gap:7px;">${ic('clipboardList',16)} Remarks</h3>
+    ${timeline.length ? timeline.map(t=>`
+      <div class="comment-entry">
+        <div class="comment-dot">${ic('phone',13)}</div>
+        <div class="comment-bubble ${isToday(t.date)?'is-today':''}">
+          <div class="comment-date">${fmtDateTime(t.date)}${isToday(t.date)?' · ✨ Today':''}</div>
+          <div class="comment-text">${escapeHtml(t.text)}</div>
+        </div>
+      </div>`).join('') : '<p class="small muted">No remarks logged yet.</p>'}
+
+    <button class="btn ghost sm mt-8" onclick="deleteLead('${l.id}')">✕ Remove this lead</button>
+  `;
+}
+function useQuickRemark(text){
+  const ta = document.getElementById('ldd-newremark') || document.getElementById('npad-newremark');
+  if(ta) ta.value = text;
+}
+async function updateLeadFollowup(id, date){
+  const l = LEADS.find(x=>x.id===id); if(!l) return;
+  l.followupDate = date;
+  renderLeadDetail();
+  const ok = await saveLeads();
+  renderAll();
+  renderLeadDetail();
+  showToast(ok ? 'Follow-up date updated' : 'Saved locally — will sync');
+}
+async function updateLeadMobile(id, mobile){
+  const l = LEADS.find(x=>x.id===id); if(!l) return;
+  const cleaned = mobile.trim();
+  if(!cleaned){ showToast('Mobile number cannot be empty'); renderLeadDetail(); return; }
+  l.mobile = cleaned;
+  const ok = await saveLeads();
+  renderAll();
+  renderLeadDetail();
+  showToast(ok ? 'Mobile number updated' : 'Saved locally — will sync');
+}
+async function updateLeadCompany(id, company){
+  const l = LEADS.find(x=>x.id===id); if(!l) return;
+  l.company = company.trim();
+  const ok = await saveLeads();
+  renderAll();
+  renderLeadDetail();
+  showToast(ok ? (l.company ? 'Company updated' : 'Removed from Corporate Tie-ups') : 'Saved locally — will sync');
+}
+async function toggleWillVisitToday(id, checked){
+  const l = LEADS.find(x=>x.id===id); if(!l) return;
+  l.willVisitTodayDate = checked ? todayISO() : '';
+  renderAll();
+  renderLeadDetail();
+  const ok = await saveLeads();
+  renderAll();
+  renderLeadDetail();
+  showToast(ok ? (checked ? '✨ Marked — will visit today' : 'Unmarked') : 'Saved locally — will sync');
+}
+async function addRemark(id){
+  const l = LEADS.find(x=>x.id===id); if(!l) return;
+  const text = document.getElementById('ldd-newremark').value.trim();
+  if(!text){ showToast('Type a remark first'); return; }
+  if(!Array.isArray(l.remarksLog)) l.remarksLog = [];
+  const now = new Date().toISOString();
+  l.remarksLog.push({date: now, text});
+  l.remark = text; // keep legacy single-field preview in sync for the main Loan Tracker's card view
+  renderLeadDetail();
+  showToast('Saving…');
+  const ok = await saveLeads();
+  renderAll();
+  showToast(ok ? 'Remark added' : 'Saved locally — will sync');
+}
+function openNotEligibleSheet(id){
+  document.getElementById('ne-leadid').value = id;
+  document.getElementById('ne-reason').value = '';
+  openSheet('sheetNotEligible');
+}
+async function confirmNotEligible(){
+  const id = document.getElementById('ne-leadid').value;
+  const reason = document.getElementById('ne-reason').value.trim();
+  if(!reason){ showToast('Please add a reason'); return; }
+  const l = LEADS.find(x=>x.id===id); if(!l) return;
+  l.status = 'not_eligible';
+  l.converted = false;
+  l.notEligibleReason = reason;
+  closeSheet('sheetNotEligible');
+  renderLeadDetail();
+  const ok = await saveLeads();
+  renderAll();
+  showToast(ok ? 'Marked Not Eligible' : 'Saved locally — will sync');
+}
+async function markLeadConverted(id){
+  const l = LEADS.find(x=>x.id===id); if(!l) return;
+  l.status = 'converted';
+  l.converted = true;
+  renderLeadDetail();
+  const ok = await saveLeads();
+  renderAll();
+  showToast(ok ? 'Marked as Converted' : 'Saved locally — will sync');
+}
+async function reopenLead(id){
+  const l = LEADS.find(x=>x.id===id); if(!l) return;
+  l.status = 'pending';
+  l.converted = false;
+  l.notEligibleReason = '';
+  renderLeadDetail();
+  const ok = await saveLeads();
+  renderAll();
+  showToast(ok ? 'Lead reopened' : 'Saved locally — will sync');
+}
+async function deleteLead(id){
+  if(!confirm('Remove this lead? This cannot be undone.')) return;
+  LEADS = LEADS.filter(l=>l.id!==id);
+  closeSheet('sheetLeadDetail');
+  renderAll();
+  const ok = await saveLeads();
+  showToast(ok ? 'Lead removed' : 'Removed locally — will sync');
+}
+
+/* ---------- NPA / SMA Followup (separate list — loan accounts, not leads) ---------- */
+const NPA_CATEGORY_ORDER = {'NPA':0, 'Likely NPA':1, 'SMA':2};
+function sortNpaList(list){
+  return [...list].sort((a,b)=>{
+    const ca = NPA_CATEGORY_ORDER[a.category] ?? 3, cb = NPA_CATEGORY_ORDER[b.category] ?? 3;
+    if(ca!==cb) return ca-cb;
+    return (Number(b.overdueAmount)||0) - (Number(a.overdueAmount)||0);
+  });
+}
+function openNpaSheet(){
+  document.getElementById('npaSearch').value = '';
+  renderNpaList();
+  openSheet('sheetNpaList');
+}
+function renderNpaList(){
+  const q = (document.getElementById('npaSearch').value||'').toLowerCase().trim();
+  let list = NPA_ACCOUNTS.filter(a=>a.status==='open');
+  if(q) list = list.filter(a=>
+    (a.accountNo||'').toLowerCase().includes(q) ||
+    (a.name||'').toLowerCase().includes(q) ||
+    (a.mobile||'').toLowerCase().includes(q)
+  );
+  list = sortNpaList(list);
+  const npaListEl = document.getElementById('npaLeadsList');
+  npaListEl.innerHTML = buildNpaCardListHtml(list);
+  wireSwipeCards(npaListEl);
+}
+const NPA_CAT_CLASS = {'NPA':'cat-npa', 'Likely NPA':'cat-likely', 'SMA':'cat-sma'};
+function buildNpaCardListHtml(list){
+  if(!list.length){
+    return `<div class="empty"><div class="icon">${ic('alertTriangle',34)}</div><div class="title">No accounts found</div><div class="desc">Tap + to add an account</div></div>`;
+  }
+  return list.map(a=>{
+    const catCls = NPA_CAT_CLASS[a.category] || 'cat-sma';
+    const latestNote = a.remarksLog && a.remarksLog.length ? a.remarksLog[a.remarksLog.length-1] : null;
+    const shining = a.willVisitTodayDate === todayISO();
+    return `
+    <div class="list-card acc-red ${shining?'glow-today':''}" data-swipe-id="${a.id}" data-swipe-kind="npa" onclick="openNpaDetail('${a.id}')">
+      <div class="list-card-body">
+        <div class="lc-top">
+          <div class="lc-avatar-ring ring-hot">
+            <div class="lc-avatar"><div class="lc-avatar-inner" style="background:${avatarColor(a.name)};">${initials(a.name)}</div></div>
+          </div>
+          <div class="lc-who">
+            <p class="lc-name">${escapeHtml(a.name)}</p>
+            <div class="lc-id mono">${escapeHtml(a.accountNo)} · ${escapeHtml(a.mobile)}</div>
+          </div>
+          <span class="pill ${catCls}">${escapeHtml(a.category)}</span>
+        </div>
+        <div class="lc-actions">
+          <a class="act-btn call" href="tel:${escapeHtml(a.mobile)}" onclick="event.stopPropagation()">${ic('phone',14)} Call ${escapeHtml(a.mobile)}</a>
+          <a class="act-btn wa" href="https://wa.me/${waNumber(a.mobile)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${ic('messageCircle',14)} WhatsApp</a>
+        </div>
+        <div class="lc-meta">
+          <span class="pill red">₹${Number(a.overdueAmount||0).toLocaleString('en-IN')} overdue</span>
+        </div>
+        ${shining
+          ? `<div class="card-comment shining"><div class="cc-dot">✨</div><div class="cc-body"><div class="cc-meta">Will visit today</div>${latestNote ? `<div class="cc-text">${escapeHtml(latestNote.text)}</div>` : ''}</div></div>`
+          : (latestNote ? `<div class="card-comment"><div class="cc-dot">${initials(a.name)[0]||'•'}</div><div class="cc-body"><div class="cc-meta">${fmtDateTime(latestNote.date)}</div><div class="cc-text">${escapeHtml(latestNote.text)}</div></div></div>` : '')}
+      </div>
+    </div>`;
+  }).join('');
+}
+function openAddNpaSheet(){
+  ['npa-accno','npa-name','npa-mobile','npa-amount','npa-remark'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('npa-category').value = 'SMA';
+  openSheet('sheetAddNpa');
+}
+async function createNpaFromSheet(){
+  const accountNo = document.getElementById('npa-accno').value.trim();
+  const name = document.getElementById('npa-name').value.trim();
+  const mobile = document.getElementById('npa-mobile').value.trim();
+  const overdueAmount = Number(document.getElementById('npa-amount').value) || 0;
+  const category = document.getElementById('npa-category').value;
+  const remark = document.getElementById('npa-remark').value.trim();
+  if(!accountNo || !name || !mobile || !overdueAmount){ showToast('Please fill Account No, Name, Mobile and Overdue Amount'); return; }
+  const now = new Date().toISOString();
+  const acc = {
+    id: uid('npa'), accountNo, name, mobile, overdueAmount, category,
+    status:'open', createdAt: now,
+    remarksLog: remark ? [{date:now, text:remark}] : []
+  };
+  NPA_ACCOUNTS.push(acc);
+  closeSheet('sheetAddNpa');
+  renderAll();
+  showToast('Saving…');
+  const ok = await saveNpaAccounts();
+  showToast(ok ? 'Account added: '+name : 'Added locally — will sync when connection is back');
+}
+let CURRENT_NPA_ID = null;
+function openNpaDetail(id){
+  CURRENT_NPA_ID = id;
+  try{
+    renderNpaDetail();
+    openSheet('sheetNpaDetail');
+  }catch(e){
+    console.error('openNpaDetail failed', e);
+    showToast('Could not open this account — data issue');
+  }
+}
+function renderNpaDetail(){
+  const a = NPA_ACCOUNTS.find(x=>x.id===CURRENT_NPA_ID);
+  if(!a){ closeSheet('sheetNpaDetail'); return; }
+  document.getElementById('npaTitle').textContent = a.name || 'Account';
+  const catCls = NPA_CAT_CLASS[a.category] || 'cat-sma';
+  const timeline = [...(Array.isArray(a.remarksLog) ? a.remarksLog : [])]
+    .filter(t=>t && t.date)
+    .sort((x,y)=>String(y.date).localeCompare(String(x.date)));
+  let daysOpen = 0;
+  try{
+    if(a.createdAt){ const d = daysDiff(String(a.createdAt).slice(0,10)); daysOpen = d!==null ? Math.max(0, d*-1) : 0; }
+  }catch(e){ daysOpen = 0; }
+  const ringCls = a.status==='open' ? '' : 'grey';
+  document.getElementById('npaBody').innerHTML = `
+    <div class="profile-head">
+      <div class="profile-avatar-ring ${ringCls}">
+        <div class="profile-avatar"><div class="profile-avatar-inner" style="background:${avatarColor(a.name)};">${initials(a.name)}</div></div>
+      </div>
+      <h3 class="profile-name">${escapeHtml(a.name)}</h3>
+      <div class="profile-bio mono">${escapeHtml(a.accountNo)} · ${escapeHtml(a.mobile)}</div>
+      <div class="lc-meta" style="justify-content:center;margin-top:8px;">
+        <span class="pill ${catCls}">${escapeHtml(a.category)}</span>
+        <span class="pill red">₹${Number(a.overdueAmount||0).toLocaleString('en-IN')} overdue</span>
+        ${a.status==='resolved' ? `<span class="pill sage">${ic('checkCircle',12)} Resolved</span>` : ''}
+      </div>
+      <div class="profile-stats">
+        <div class="st"><div class="n">${daysOpen}</div><div class="l">Days open</div></div>
+        <div class="st"><div class="n">${timeline.length}</div><div class="l">Remarks</div></div>
+      </div>
+    </div>
+    <div class="lc-actions" style="margin-top:2px;margin-bottom:2px;">
+      <a class="act-btn call" href="tel:${escapeHtml(a.mobile)}">${ic('phone',14)} Call ${escapeHtml(a.mobile)}</a>
+      <a class="act-btn wa" href="https://wa.me/${waNumber(a.mobile)}" target="_blank" rel="noopener">${ic('messageCircle',14)} WhatsApp</a>
+    </div>
+    <div class="field mt-8">
+      <label>Mobile Number</label>
+      <input type="tel" id="npad-mobile" value="${escapeHtml(a.mobile)}" maxlength="15" onchange="updateNpaMobile('${a.id}', this.value)">
+    </div>
+
+    ${a.status==='open' ? `
+    <div class="field mt-8">
+      <label>Overdue Amount (₹)</label>
+      <input type="number" id="npad-amount" value="${a.overdueAmount||0}" onchange="updateNpaAmount('${a.id}', this.value)">
+    </div>
+    <div class="field">
+      <label>Category</label>
+      <select id="npad-category" onchange="updateNpaCategory('${a.id}', this.value)">
+        <option value="SMA" ${a.category==='SMA'?'selected':''}>SMA</option>
+        <option value="Likely NPA" ${a.category==='Likely NPA'?'selected':''}>Likely NPA</option>
+        <option value="NPA" ${a.category==='NPA'?'selected':''}>NPA</option>
+      </select>
+    </div>
+    <label class="visit-today-check">
+      <input type="checkbox" ${a.willVisitTodayDate===todayISO()?'checked':''} onchange="toggleNpaWillVisitToday('${a.id}', this.checked)">
+      <span>✨ Will visit today</span>
+    </label>
+    <div class="field">
+      <label>Add a Remark</label>
+      <div class="remark-quick">
+        ${QUICK_REMARKS.map(q=>`<button type="button" onclick="useQuickRemark('${escapeHtml(q.text).replace(/'/g,"\\'")}')"><span class="rq-emoji">${q.emoji}</span>${q.label}</button>`).join('')}
+      </div>
+      <textarea id="npad-newremark" placeholder="What happened on this call..." style="min-height:70px;"></textarea>
+    </div>
+    <button class="btn gold" style="width:100%;margin-bottom:16px;" onclick="addNpaRemark('${a.id}')">${ic('plus',14)} Add Remark</button>
+    <button class="btn outline" style="width:100%;margin-bottom:18px;" onclick="markNpaResolved('${a.id}')">${ic('checkCircle',14)} Mark Resolved</button>
+    ` : `
+    <button class="btn outline" style="width:100%;margin:14px 0 18px;" onclick="reopenNpaAccount('${a.id}')">↺ Reopen</button>
+    `}
+
+    <h3 style="font-size:13.5px;margin-bottom:6px;display:flex;align-items:center;gap:7px;">${ic('clipboardList',16)} Remarks</h3>
+    ${timeline.length ? timeline.map(t=>`
+      <div class="comment-entry">
+        <div class="comment-dot">${ic('phone',13)}</div>
+        <div class="comment-bubble ${isToday(t.date)?'is-today':''}">
+          <div class="comment-date">${fmtDateTime(t.date)}${isToday(t.date)?' · ✨ Today':''}</div>
+          <div class="comment-text">${escapeHtml(t.text)}</div>
+        </div>
+      </div>`).join('') : '<p class="small muted">No remarks logged yet.</p>'}
+
+    <button class="btn ghost sm mt-8" onclick="deleteNpaAccount('${a.id}')">✕ Remove this account</button>
+  `;
+}
+async function updateNpaAmount(id, val){
+  const a = NPA_ACCOUNTS.find(x=>x.id===id); if(!a) return;
+  a.overdueAmount = Number(val) || 0;
+  renderNpaDetail();
+  const ok = await saveNpaAccounts();
+  renderAll();
+  renderNpaDetail();
+  showToast(ok ? 'Amount updated' : 'Saved locally — will sync');
+}
+async function updateNpaMobile(id, mobile){
+  const a = NPA_ACCOUNTS.find(x=>x.id===id); if(!a) return;
+  const cleaned = mobile.trim();
+  if(!cleaned){ showToast('Mobile number cannot be empty'); renderNpaDetail(); return; }
+  a.mobile = cleaned;
+  const ok = await saveNpaAccounts();
+  renderAll();
+  renderNpaDetail();
+  showToast(ok ? 'Mobile number updated' : 'Saved locally — will sync');
+}
+async function toggleNpaWillVisitToday(id, checked){
+  const a = NPA_ACCOUNTS.find(x=>x.id===id); if(!a) return;
+  a.willVisitTodayDate = checked ? todayISO() : '';
+  renderAll();
+  renderNpaDetail();
+  const ok = await saveNpaAccounts();
+  renderAll();
+  renderNpaDetail();
+  showToast(ok ? (checked ? '✨ Marked — will visit today' : 'Unmarked') : 'Saved locally — will sync');
+}
+async function updateNpaCategory(id, val){
+  const a = NPA_ACCOUNTS.find(x=>x.id===id); if(!a) return;
+  a.category = val;
+  const ok = await saveNpaAccounts();
+  renderNpaDetail();
+  renderAll();
+  showToast(ok ? 'Category updated' : 'Saved locally — will sync');
+}
+async function addNpaRemark(id){
+  const a = NPA_ACCOUNTS.find(x=>x.id===id); if(!a) return;
+  const text = document.getElementById('npad-newremark').value.trim();
+  if(!text){ showToast('Type a remark first'); return; }
+  if(!Array.isArray(a.remarksLog)) a.remarksLog = [];
+  const now = new Date().toISOString();
+  a.remarksLog.push({date: now, text});
+  renderNpaDetail();
+  showToast('Saving…');
+  const ok = await saveNpaAccounts();
+  renderAll();
+  showToast(ok ? 'Remark added' : 'Saved locally — will sync');
+}
+async function markNpaResolved(id){
+  const a = NPA_ACCOUNTS.find(x=>x.id===id); if(!a) return;
+  a.status = 'resolved';
+  renderNpaDetail();
+  const ok = await saveNpaAccounts();
+  renderAll();
+  showToast(ok ? 'Marked Resolved' : 'Saved locally — will sync');
+}
+async function reopenNpaAccount(id){
+  const a = NPA_ACCOUNTS.find(x=>x.id===id); if(!a) return;
+  a.status = 'open';
+  renderNpaDetail();
+  const ok = await saveNpaAccounts();
+  renderAll();
+  showToast(ok ? 'Account reopened' : 'Saved locally — will sync');
+}
+async function deleteNpaAccount(id){
+  if(!confirm('Remove this account? This cannot be undone.')) return;
+  NPA_ACCOUNTS = NPA_ACCOUNTS.filter(a=>a.id!==id);
+  closeSheet('sheetNpaDetail');
+  renderAll();
+  const ok = await saveNpaAccounts();
+  showToast(ok ? 'Account removed' : 'Removed locally — will sync');
+}
+
+/* ---------- Init ---------- */
+(async function init(){
+  initSupabase();
+  await loadLeads();
+  subscribeRealtime();
+  if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  }
+})();
+</script>
+</body>
+</html>
